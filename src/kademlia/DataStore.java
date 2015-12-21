@@ -42,15 +42,18 @@ public class DataStore {
         long hash;
         long lastModified;
         long lastRetreived;
+        long size;
         final Object lock = new Object();
         public void write(DataOutputStream out) throws IOException {
             out.writeLong(key);
+            out.writeLong(size);
             out.writeLong(hash);
             out.writeLong(lastModified);
             out.writeLong(lastRetreived);
         }
         public StoredData(DataInputStream in) throws IOException {
             this.key = in.readLong();
+            this.size = in.readLong();
             this.hash = in.readLong();
             this.lastModified = in.readLong();
             this.lastRetreived = in.readLong();
@@ -59,11 +62,15 @@ public class DataStore {
         }
         public StoredData(long key, byte[] data, long lastModified) {
             this.key = key;
+            this.size = data.length;
             this.data = data;
             this.hash = Lookup.hash(data);
             this.lastModified = lastModified;
             this.lastRetreived = 0;
             startThread();
+        }
+        public boolean isInRAM() {
+            return data != null;
         }
         public byte[] getData() {
             lastRetreived = System.currentTimeMillis();
@@ -74,10 +81,13 @@ public class DataStore {
                 File save = getFile();
                 if (save.exists()) {
                     try (FileInputStream in = new FileInputStream(save)) {
-                        int size = in.available();
-                        byte[] temp = new byte[size];
+                        int fileSize = in.available();
+                        if (fileSize != size) {
+                            throw new IllegalStateException("save is wrong size");
+                        }
+                        byte[] temp = new byte[fileSize];
                         int j = in.read(temp);
-                        if (j != size) {
+                        if (j != fileSize) {
                             throw new IllegalStateException("kush");
                         }
                         data = temp;
@@ -93,6 +103,7 @@ public class DataStore {
         public void update(byte[] newData, long lastModified) {
             synchronized (lock) {
                 this.data = newData;
+                this.size = newData.length;
                 this.hash = Lookup.hash(newData);
                 this.lastModified = lastModified;
             }
@@ -153,6 +164,21 @@ public class DataStore {
     }
     public boolean hasKey(long key) {
         return storedData.get(key) != null;
+    }
+    public long bytesStoredInRAM() {
+        synchronized (lock) {
+            return storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).mapToLong(x -> x.size).sum();
+        }
+    }
+    public long bytesStoredOnDisk() {
+        synchronized (lock) {
+            return storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> !x.isInRAM()).mapToLong(x -> x.size).sum();
+        }
+    }
+    public long bytesStoredInTotal() {
+        synchronized (lock) {
+            return storedData.keySet().stream().mapToLong(key -> storedData.get(key).size).sum();
+        }
     }
     public void put(long key, byte[] value, long lastModified) {
         long hash = Lookup.hash(value);

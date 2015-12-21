@@ -82,8 +82,11 @@ public class Connection {
         }
         pendingRequests.put(r.requestID, r);
         try {
+            ByteArrayOutputStream temp = new ByteArrayOutputStream();
+            r.send(new DataOutputStream(temp));
+            byte[] toWrite = temp.toByteArray();
             synchronized (outLock) {
-                r.send(out);
+                out.write(toWrite);
             }
             if (Kademlia.verbose) {
                 System.out.println(kademliaRef.myself + " Sent request " + r + " to " + node);
@@ -115,11 +118,13 @@ public class Connection {
                 public void run() {
                     try {
                         ByteArrayOutputStream o = new ByteArrayOutputStream();
-                        request.execute(kademliaRef, new DataOutputStream(o));
+                        DataOutputStream tempOut = new DataOutputStream(o);
+                        tempOut.writeBoolean(true);
+                        tempOut.writeLong(request.requestID);
+                        request.execute(kademliaRef, tempOut);
+                        byte[] toSend = o.toByteArray();
                         synchronized (outLock) {
-                            out.writeBoolean(true);
-                            out.writeLong(request.requestID);
-                            out.write(o.toByteArray());
+                            out.write(toSend);
                         }
                         if (Kademlia.verbose) {
                             System.out.println(kademliaRef.myself + " Sent response to " + request);
