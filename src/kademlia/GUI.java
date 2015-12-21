@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import java.io.File;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,6 +23,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 /**
@@ -67,7 +69,7 @@ public class GUI extends Application {
         
         //dataGrid.setGridLinesVisible(true);
         
-        //GET
+        /* GET */
         //TextField
         TextField getValueTextField = new TextField();
         getValueTextField.setPromptText("Key");
@@ -86,7 +88,7 @@ public class GUI extends Application {
             }
         });
         dataGrid.add(getBtn, 3, 5);
-        //SET
+        /* PUT */
         //TextField
         TextField putKeyTextField = new TextField();
         putKeyTextField.setPromptText("Key");
@@ -111,6 +113,23 @@ public class GUI extends Application {
             }
         });
         dataGrid.add(putBtn, 7, 6, 2, 1);
+        /* PUT FILE */
+        Button putFileBtn = new Button();
+        putFileBtn.setText("Put File");
+        putFileBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                //kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
+                FileChooser fileChooser = new FileChooser();
+                File file = fileChooser.showOpenDialog(primaryStage);
+                if (file != null) {
+                    System.out.println("file!!!");
+                    //openFile(file);
+                }
+            }
+        });
+        dataGrid.add(putFileBtn, 1, 7);
+        
         //Tab
         tab.setContent(dataGrid);
         tabPane.getTabs().add(tab);
