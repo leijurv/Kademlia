@@ -182,9 +182,10 @@ public class GUI extends Application {
         dataGrid.add(getFileBtn, 8, 7);
         /* Progress Bar */
         fileProgressBar = new ProgressBar();
-        fileProgressBar.disableProperty();
+        fileProgressBar.setProgress(0);
+        fileProgressBar.setDisable(true);
         fileProgressBar.setPrefWidth(980);
-        dataGrid.add(fileProgressBar, 0, 8, 10, 1);
+        dataGrid.add(fileProgressBar, 1, 9, 8, 1);
         
         //Tab
         tab.setContent(dataGrid);
@@ -208,6 +209,13 @@ public class GUI extends Application {
         alert.show();
     }
     public static void updateProgressBar(float progress) {
+        if (fileProgressBar.isDisabled()) {
+            fileProgressBar.setDisable(false);
+        }
         fileProgressBar.setProgress(progress);
+        if (progress == 1) {
+            fileProgressBar.setDisable(true);
+            fileProgressBar.setProgress(0);
+        }
     }
 }
