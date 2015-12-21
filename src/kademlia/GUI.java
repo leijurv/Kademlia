@@ -19,12 +19,14 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
@@ -38,6 +40,7 @@ import javafx.stage.Stage;
 public class GUI extends Application {
     private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
     private static Kademlia kad;
+    private static ProgressBar fileProgressBar;
     @Override
     public void start(Stage primaryStage) {
         // Tab
@@ -48,6 +51,9 @@ public class GUI extends Application {
         //Grid
         GridPane dataGrid = new GridPane();
         dataGrid.setAlignment(Pos.TOP_CENTER);
+        dataGrid.setHgap(10);
+        dataGrid.setVgap(10);
+        //dataGrid.setGridLinesVisible(true);
         for (int i = 0; i < 10; i++) {
             ColumnConstraints col = new ColumnConstraints();
             col.setPercentWidth(10);
@@ -62,17 +68,17 @@ public class GUI extends Application {
         TableView<KeyValueData> table = new TableView<>();
         TableColumn keyCol = new TableColumn("Key");
         keyCol.setCellValueFactory(new PropertyValueFactory<>("key"));
+        keyCol.setPrefWidth(100);
         keyCol.setEditable(false);
         keyCol.setSortable(false);
         TableColumn valCol = new TableColumn("Value");
         valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
+        valCol.setPrefWidth(500);
         valCol.setEditable(true);
         valCol.setSortable(false);
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         dataGrid.add(table, 0, 0, 10, 5);
-        
-        //dataGrid.setGridLinesVisible(true);
         
         /* GET */
         //TextField
@@ -165,8 +171,8 @@ public class GUI extends Application {
                 File file = fileChooser.showSaveDialog(primaryStage);
                 if (file != null) {
                     try {
-                        kad.putfile(file, getFileKeyTextField.getText());
-                    } catch (IOException | InterruptedException ex) {
+                        kad.getfile(getFileKeyTextField.getText(), file);
+                    } catch (IOException ex) {
                         Alert alert = new Alert(AlertType.ERROR, ex.getLocalizedMessage());
                         alert.show();
                     }
@@ -174,6 +180,11 @@ public class GUI extends Application {
             }
         });
         dataGrid.add(getFileBtn, 8, 7);
+        /* Progress Bar */
+        fileProgressBar = new ProgressBar();
+        fileProgressBar.disableProperty();
+        fileProgressBar.setPrefWidth(980);
+        dataGrid.add(fileProgressBar, 0, 8, 10, 1);
         
         //Tab
         tab.setContent(dataGrid);
@@ -182,6 +193,7 @@ public class GUI extends Application {
         Scene scene = new Scene(tabPane, 1000, 750);
         primaryStage.setTitle("Kademlia GUI");
         primaryStage.setScene(scene);
+        primaryStage.setOnCloseRequest(e -> System.exit(0));
         primaryStage.show();
     }
     public static void main(String[] args, Kademlia kademliaRef) {
@@ -194,5 +206,8 @@ public class GUI extends Application {
     public static void alertForError(String message) {
         Alert alert = new Alert(AlertType.ERROR, message);
         alert.show();
+    }
+    public static void updateProgressBar(float progress) {
+        fileProgressBar.setProgress(progress);
     }
 }
