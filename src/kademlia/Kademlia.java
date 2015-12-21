@@ -41,7 +41,7 @@ public class Kademlia {
         new Thread() {
             @Override
             public void run() {
-                GUI.main(args);
+                GUI.main(args, kad);
             }
         }.start();
         Scanner scan = new Scanner(System.in);
@@ -233,6 +233,18 @@ public class Kademlia {
     }
     public void put(String key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
+    }
+    public void get(String key) {
+        long d = Lookup.hash(key.getBytes());
+        System.out.println("Getting " + d);
+        byte[] cached = storedData.get(d);
+        if (cached != null) {
+            System.out.println("stored locally");
+            GUI.incomingKeyValueData(d, cached);
+            System.out.println(new String(cached));
+            return;
+        }
+        new Lookup(d, this, true).execute();
     }
     public Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);

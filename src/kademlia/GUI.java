@@ -10,7 +10,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -30,9 +29,8 @@ import javafx.stage.Stage;
  * @author aidan
  */
 public class GUI extends Application {
-
     private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
-
+    private static Kademlia kad;
     @Override
     public void start(Stage primaryStage) {
         /*Button btn = new Button();
@@ -74,14 +72,10 @@ public class GUI extends Application {
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         dataGrid.add(table, 0, 0, 10, 5);
-        
         dataGrid.setGridLinesVisible(true);
-        
-        
         TextField getValueTextField = new TextField();
         getValueTextField.setPromptText("Key");
         dataGrid.add(getValueTextField, 0, 5, 3, 1);
-
         Button getBtn = new Button();
         getBtn.setText("Get Value");
         getBtn.setOnAction(new EventHandler<ActionEvent>() {
@@ -90,11 +84,11 @@ public class GUI extends Application {
                 if (getValueTextField.getText().length() == 0) {
                     return;
                 }
-                System.out.println(getValueTextField.getText());
+                System.out.println("your mom " + getValueTextField.getText());
+                kad.get(getValueTextField.getText());
             }
         });
         dataGrid.add(getBtn, 3, 5);
-        
         tab.setContent(dataGrid);
         tabPane.getTabs().add(tab);
         Scene scene = new Scene(tabPane, 1000, 750);
@@ -102,11 +96,10 @@ public class GUI extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-
-    public static void main(String[] args) {
+    public static void main(String[] args, Kademlia kademliaRef) {
+        kad = kademliaRef;
         launch(args);
     }
-
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
         keyValueDataList.add(new KeyValueData(rawKey, rawValue));
     }
