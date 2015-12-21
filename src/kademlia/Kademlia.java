@@ -78,7 +78,7 @@ public class Kademlia {
                         byte[] cached = kad.storedData.get(d);
                         if (cached != null) {
                             System.out.println("stored locally");
-                            GUI.incomingKeyValueData(d, cached);
+                            DataGUITab.incomingKeyValueData(d, cached);
                             System.out.println(new String(cached));
                             break;
                         }
@@ -249,7 +249,7 @@ public class Kademlia {
         byte[] cached = storedData.get(d);
         if (cached != null) {
             System.out.println("stored locally");
-            GUI.incomingKeyValueData(d, cached);
+            DataGUITab.incomingKeyValueData(d, cached);
             System.out.println(new String(cached));
             return;
         }
