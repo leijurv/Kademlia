@@ -35,6 +35,7 @@ public class FileAssembly {
         this.kademliaRef = kademliaRef;
         this.storageLocation = storageLocation;
     }
+    String search = "";
     public void assemble() {
         for (int i = 0; i < hashes.length; i++) {
             final int j = i;
@@ -46,18 +47,26 @@ public class FileAssembly {
                         System.out.println("Part " + j + " was stored locally");
                         onPartCompleted(hashes[j], pos, false);
                     } else {
+                        search += hashes[j];
+                        search += "\n";
                         new Lookup(FileAssembly.this, hashes[j], kademliaRef).execute();
                     }
                 }
             }.start();
         }
+        System.out.println("LOOKING FOR " + search);
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
         onPartCompleted1(key, contents, t);
+        int numUncompleted = 0;
         for (int i = 0; i < hashes.length; i++) {
             if (parts[i] == null) {
-                return;
+                numUncompleted++;
             }
+        }
+        System.out.println(numUncompleted + " parts left");
+        if (numUncompleted != 0) {
+            return;
         }
         System.out.println("done getting the file");
         try (FileOutputStream out = new FileOutputStream(new File(storageLocation))) {
@@ -70,15 +79,21 @@ public class FileAssembly {
         }
     }
     private void onPartCompleted1(long key, byte[] contents, boolean t) {
+        boolean encountered = false;
         for (int i = 0; i < hashes.length; i++) {
             if (hashes[i] == key) {
                 if (t) {
                     System.out.println("Received part " + i + ", with hash " + key);
                 }
                 parts[i] = contents;
-                return;
+                if (encountered) {
+                    System.out.println("got " + key + " more than once");
+                }
+                encountered = true;
             }
         }
-        throw new IllegalArgumentException("shrek");
+        if (!encountered) {
+            throw new IllegalArgumentException("shrek");
+        }
     }
 }

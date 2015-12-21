@@ -129,6 +129,7 @@ public class Kademlia {
                                     new Lookup(hash, kad, y, start).execute();
                                 }
                             }.start();
+                            Thread.sleep(100);
                         }
                         new Lookup(name, kad, theData.toByteArray(), start).execute();
                         in.close();

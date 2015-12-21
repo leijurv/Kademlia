@@ -11,7 +11,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -27,7 +26,6 @@ public class Connection {
     public final DataInputStream in;
     public final DataOutputStream out;
     public static SecureRandom sc = new SecureRandom();
-    public final ArrayList<Long> pendingRequestIDs;
     public final HashMap<Long, Request> pendingRequests;
     public final Kademlia kademliaRef;
     private final Object outLock = new Object();
@@ -38,7 +36,6 @@ public class Connection {
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
         this.pendingRequests = new HashMap<>();
-        this.pendingRequestIDs = new ArrayList<>();
         this.kademliaRef = kademlia;
     }
     public void doListen() throws IOException {
@@ -67,8 +64,7 @@ public class Connection {
                         }
                         Thread.sleep(60000 + r.nextInt(100));//randomness. dont both ping each other at the exact same time.
                     }
-                } catch (InterruptedException ex) {
-                } catch (IOException ex) {
+                } catch (InterruptedException | IOException ex) {
                     Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -78,13 +74,12 @@ public class Connection {
         }
     }
     public boolean isRequestStillPending(Request r) {
-        return pendingRequestIDs.contains(r.requestID);
+        return pendingRequests.get(r.requestID) != null;
     }
     public boolean sendRequest(Request r) {
         if (!isStillRunning) {
             throw new IllegalStateException("ur high");
         }
-        pendingRequestIDs.add(r.requestID);
         pendingRequests.put(r.requestID, r);
         try {
             synchronized (outLock) {
@@ -97,7 +92,6 @@ public class Connection {
         } catch (IOException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("Exception while sending request");
-            pendingRequestIDs.remove(r.requestID);
             pendingRequests.remove(r.requestID);
             return false;
         }
@@ -110,9 +104,8 @@ public class Connection {
             if (r == null) {
                 throw new IOException("Sent response ID " + requestID + " for nonexistant request");
             }
-            pendingRequestIDs.remove(requestID);
             if (Kademlia.verbose) {
-                System.out.println(kademliaRef.myself + " Got response for " + r + " with " + pendingRequestIDs.size() + " left");
+                System.out.println(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left");
             }
             r.onResponse(in, this);
         } else {
