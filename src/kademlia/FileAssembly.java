@@ -64,7 +64,7 @@ public class FileAssembly {
                 numUncompleted++;
             }
         }
-        GUI.updateProgressBar(((float) (hashes.length - numUncompleted)) / ((float) (hashes.length)));
+        DataGUITab.updateProgressBar(((float) (hashes.length - numUncompleted)) / ((float) (hashes.length)));
         System.out.println(numUncompleted + " parts left");
         if (numUncompleted != 0) {
             return;
