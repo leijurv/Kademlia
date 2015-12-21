@@ -33,18 +33,12 @@ public class GUI extends Application {
     private static Kademlia kad;
     @Override
     public void start(Stage primaryStage) {
-        /*Button btn = new Button();
-         btn.setText("Say 'Hello World'");
-         btn.setOnAction(new EventHandler<ActionEvent>() {
-         @Override
-         public void handle(ActionEvent event) {
-         System.out.println("Hello World!");
-         }
-         });*/
+        // Tab
         TabPane tabPane = new TabPane();
         Tab tab = new Tab();
         tab.setClosable(false);
         tab.setText("Data");
+        //Grid
         GridPane dataGrid = new GridPane();
         dataGrid.setAlignment(Pos.TOP_CENTER);
         for (int i = 0; i < 10; i++) {
@@ -57,9 +51,7 @@ public class GUI extends Application {
             row.setPercentHeight(10);
             dataGrid.getRowConstraints().add(row);
         }
-        //dataGrid.setHgap(10);
-        //dataGrid.setVgap(10);
-        //dataGrid.setPadding(new Insets(25, 25, 25, 25));
+        //Table View
         TableView<KeyValueData> table = new TableView<>();
         TableColumn keyCol = new TableColumn("Key");
         keyCol.setCellValueFactory(new PropertyValueFactory<>("key"));
@@ -72,10 +64,15 @@ public class GUI extends Application {
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         dataGrid.add(table, 0, 0, 10, 5);
+        
         dataGrid.setGridLinesVisible(true);
+        
+        //GET
+        //TextField
         TextField getValueTextField = new TextField();
         getValueTextField.setPromptText("Key");
         dataGrid.add(getValueTextField, 0, 5, 3, 1);
+        //Button
         Button getBtn = new Button();
         getBtn.setText("Get Value");
         getBtn.setOnAction(new EventHandler<ActionEvent>() {
@@ -84,13 +81,37 @@ public class GUI extends Application {
                 if (getValueTextField.getText().length() == 0) {
                     return;
                 }
-                System.out.println("your mom " + getValueTextField.getText());
                 kad.get(getValueTextField.getText());
             }
         });
         dataGrid.add(getBtn, 3, 5);
+        //SET
+        //TextField
+        TextField putKeyTextField = new TextField();
+        putKeyTextField.setPromptText("Key");
+        dataGrid.add(putKeyTextField, 0, 6, 3, 1);
+        //TextField
+        TextField putValueTextField = new TextField();
+        putValueTextField.setPromptText("Value");
+        dataGrid.add(putValueTextField, 4, 6, 3, 1);
+        //Button
+        Button putBtn = new Button();
+        putBtn.setText("Put Key/Value");
+        putBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                if (putKeyTextField.getText().length() == 0 || putValueTextField.getText().length() == 0) {
+                    return;
+                }
+                System.out.println(putKeyTextField.getText() + " | " + putValueTextField.getText());
+                //kad.set(putKeyTextField.getText(), putValueTextField.getText());
+            }
+        });
+        dataGrid.add(putBtn, 7, 6, 2, 1);
+        //Tab
         tab.setContent(dataGrid);
         tabPane.getTabs().add(tab);
+        //Scene
         Scene scene = new Scene(tabPane, 1000, 750);
         primaryStage.setTitle("Kademlia GUI");
         primaryStage.setScene(scene);
