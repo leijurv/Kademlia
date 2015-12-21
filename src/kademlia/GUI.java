@@ -65,7 +65,7 @@ public class GUI extends Application {
         table.setItems(keyValueDataList);
         dataGrid.add(table, 0, 0, 10, 5);
         
-        dataGrid.setGridLinesVisible(true);
+        //dataGrid.setGridLinesVisible(true);
         
         //GET
         //TextField
@@ -82,6 +82,7 @@ public class GUI extends Application {
                     return;
                 }
                 kad.get(getValueTextField.getText());
+                getValueTextField.clear();
             }
         });
         dataGrid.add(getBtn, 3, 5);
@@ -104,6 +105,9 @@ public class GUI extends Application {
                     return;
                 }
                 kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
+                incomingKeyValueData(Lookup.hash(putKeyTextField.getText().getBytes()), putValueTextField.getText().getBytes());
+                putKeyTextField.clear();
+                putValueTextField.clear();
             }
         });
         dataGrid.add(putBtn, 7, 6, 2, 1);
