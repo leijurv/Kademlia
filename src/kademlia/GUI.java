@@ -103,8 +103,7 @@ public class GUI extends Application {
                 if (putKeyTextField.getText().length() == 0 || putValueTextField.getText().length() == 0) {
                     return;
                 }
-                System.out.println(putKeyTextField.getText() + " | " + putValueTextField.getText());
-                //kad.set(putKeyTextField.getText(), putValueTextField.getText());
+                kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
             }
         });
         dataGrid.add(putBtn, 7, 6, 2, 1);
