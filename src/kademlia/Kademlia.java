@@ -38,6 +38,12 @@ public class Kademlia {
         int myPort = Integer.parseInt(args[0]);
         long id = Math.abs(new Random().nextLong());
         Kademlia kad = new Kademlia(myPort, id);
+        new Thread() {
+            @Override
+            public void run() {
+                GUI.main(args);
+            }
+        }.start();
         Scanner scan = new Scanner(System.in);
         while (true) {
             try {
@@ -72,6 +78,7 @@ public class Kademlia {
                         byte[] cached = kad.storedData.get(d);
                         if (cached != null) {
                             System.out.println("stored locally");
+                            GUI.incomingKeyValueData(d, cached);
                             System.out.println(new String(cached));
                             break;
                         }

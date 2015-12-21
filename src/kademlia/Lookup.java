@@ -224,6 +224,7 @@ public class Lookup {
         onCompletion();
     }
     public void onCompletion() {
+        GUI.incomingKeyValueData(key, value);
         if (needsToAssemble) {
             System.out.println("Received metadata. Starting assembly...");
             new Thread() {

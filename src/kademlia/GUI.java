@@ -8,10 +8,7 @@ package kademlia;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
@@ -23,21 +20,18 @@ import javafx.stage.Stage;
  *
  * @author aidan
  */
-public class GUI extends Application
-{
-    private final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
-
-    
-   @Override
+public class GUI extends Application {
+    private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
+    @Override
     public void start(Stage primaryStage) {
         /*Button btn = new Button();
-        btn.setText("Say 'Hello World'");
-        btn.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                System.out.println("Hello World!");
-            }
-        });*/
+         btn.setText("Say 'Hello World'");
+         btn.setOnAction(new EventHandler<ActionEvent>() {
+         @Override
+         public void handle(ActionEvent event) {
+         System.out.println("Hello World!");
+         }
+         });*/
         TabPane tabPane = new TabPane();
         Tab tab = new Tab();
         tab.setClosable(false);
@@ -55,9 +49,7 @@ public class GUI extends Application
         table.setItems(keyValueDataList);
         tab.setContent(table);
         tabPane.getTabs().add(tab);
-
         Scene scene = new Scene(tabPane, 300, 250);
-
         primaryStage.setTitle("Kademlia GUI");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -65,8 +57,9 @@ public class GUI extends Application
     public static void main(String[] args) {
         launch(args);
     }
-    public void incomingKeyValueData(long rawKey, byte[] rawValue) {
+    public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
         keyValueDataList.add(new KeyValueData(rawKey, rawValue));
+        System.out.println("Received");
+        System.out.println(keyValueDataList);
     }
-    
 }
