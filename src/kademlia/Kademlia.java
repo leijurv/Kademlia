@@ -87,7 +87,7 @@ public class Kademlia {
                     case "put":
                         String path = command.substring(0, command.indexOf(" "));
                         byte[] contents = command.substring(command.indexOf(" ") + 1, command.length()).getBytes();
-                        new Lookup(path, kad, contents, System.currentTimeMillis()).execute();
+                        kad.put(path, contents);
                         break;
                     case "getfile":
                         String storPath = command.split(" ")[1];
@@ -225,8 +225,14 @@ public class Kademlia {
             buckets[i] = new Bucket(i, this);
         }
         this.connections = new ArrayList<>();
-        storedData = new DataStore("port" + port);
+        storedData = new DataStore("port" + port, this);
         runKademlia();
+    }
+    public void put(long key, byte[] contents) {
+        new Lookup(key, this, contents, System.currentTimeMillis()).execute();
+    }
+    public void put(String key, byte[] contents) {
+        new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
     public Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);

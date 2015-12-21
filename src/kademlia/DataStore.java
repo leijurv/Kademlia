@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,8 +23,12 @@ import java.util.logging.Logger;
  */
 public class DataStore {
     final String dataStoreFile;
-    public DataStore(String data) {
-        dataStoreFile = System.getProperty("user.home") + "/Documents/kad/" + data + "/";
+    final Random rand;
+    final Kademlia kademliaRef;
+    public DataStore(String data, Kademlia kademliaRef) {
+        this.kademliaRef = kademliaRef;
+        this.rand = new Random();
+        this.dataStoreFile = System.getProperty("user.home") + "/Documents/kad/" + data + "/";
         if (getSaveFile().exists()) {
             readFromSave();
         }
@@ -50,6 +55,7 @@ public class DataStore {
             this.lastModified = in.readLong();
             this.lastRetreived = in.readLong();
             this.data = null;
+            startThread();
         }
         public StoredData(long key, byte[] data, long lastModified) {
             this.key = key;
@@ -57,14 +63,8 @@ public class DataStore {
             this.hash = Lookup.hash(data);
             this.lastModified = lastModified;
             this.lastRetreived = 0;
+            startThread();
         }
-        /* private StoredData(long key, long lastModified) {
-         this.key = key;
-         this.data = null;
-         this.hash = 0;
-         this.lastModified = lastModified;
-         this.lastRetreived = 0;
-         }*/
         public byte[] getData() {
             lastRetreived = System.currentTimeMillis();
             synchronized (lock) {
@@ -118,6 +118,26 @@ public class DataStore {
         }
         public File getFile() {
             return new File(dataStoreFile + key);
+        }
+        private void startThread() {
+            new Thread() {
+                @Override
+                public void run() {
+                    while (true) {
+                        try {
+                            Thread.sleep(60000 + rand.nextInt(10000));
+                            boolean wasNot = data == null;
+                            System.out.println("Refreshing " + key + " " + wasNot);
+                            kademliaRef.put(key, getData());
+                            if (wasNot) {
+                                data = null;//#ConverveMemory
+                            }
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            }.start();
         }
     }
     final HashMap<Long, StoredData> storedData = new HashMap<>();
