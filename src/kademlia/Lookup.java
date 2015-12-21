@@ -28,6 +28,7 @@ public class Lookup {
     boolean needsToAssemble = false;
     FileAssembly assembly = null;
     String storageLocation = null;
+    long lastMod = 0;
     static MessageDigest md = null;
     static {
         try {
@@ -46,13 +47,15 @@ public class Lookup {
         }
         return Math.abs(h);
     }
-    public Lookup(long key, Kademlia kademliaRef, byte[] contents) {
+    public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(key, kademliaRef, false);
         contentsToPut = contents;
+        this.lastMod = lastModified;
     }
-    public Lookup(String path, Kademlia kademliaRef, byte[] contents) {
+    public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(path, kademliaRef, false);
         contentsToPut = contents;
+        this.lastMod = lastModified;
     }
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
@@ -120,11 +123,11 @@ public class Lookup {
                 if (contentsToPut != null) {
                     for (Node storageNode : closest) {
                         if (kademliaRef.myself.equals(storageNode)) {
-                            kademliaRef.storedData.put(key, contentsToPut);
+                            kademliaRef.storedData.put(key, contentsToPut, lastMod);
                             System.out.println("done, stored locally");
                         } else {
                             try {
-                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut));
+                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod));
                                 System.out.println("done, stored on " + storageNode);
                             } catch (IOException ex) {
                                 Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);

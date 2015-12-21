@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -81,7 +80,7 @@ public class Kademlia {
                     case "put":
                         String path = command.substring(0, command.indexOf(" "));
                         byte[] contents = command.substring(command.indexOf(" ") + 1, command.length()).getBytes();
-                        new Lookup(path, kad, contents).execute();
+                        new Lookup(path, kad, contents, System.currentTimeMillis()).execute();
                         break;
                     case "getfile":
                         String storPath = command.split(" ")[1];
@@ -110,6 +109,7 @@ public class Kademlia {
                         out.writeInt(partSize);
                         kad.progress = 0;
                         kad.max = partitions + 1;
+                        long start = System.currentTimeMillis();
                         for (int i = 0; i < partitions; i++) {
                             int psize = partSize;
                             if (i == partitions - 1) {
@@ -126,11 +126,11 @@ public class Kademlia {
                             new Thread() {
                                 @Override
                                 public void run() {
-                                    new Lookup(hash, kad, y).execute();
+                                    new Lookup(hash, kad, y, start).execute();
                                 }
                             }.start();
                         }
-                        new Lookup(name, kad, theData.toByteArray()).execute();
+                        new Lookup(name, kad, theData.toByteArray(), start).execute();
                         in.close();
                         break;
                     case "help":
@@ -173,11 +173,8 @@ public class Kademlia {
         System.out.println();
         System.out.println();
         System.out.println();
-        k2tok3.sendRequest(new RequestStore(58009, "yolo swag 420 noscope".getBytes()));
+        k2tok3.sendRequest(new RequestStore(58009, "yolo swag 420 noscope".getBytes(), System.currentTimeMillis()));
         Thread.sleep(500);
-        System.out.println(k1.storedData);
-        System.out.println(k2.storedData);
-        System.out.println(k3.storedData);
         System.out.println();
         System.out.println();
         System.out.println();
@@ -209,7 +206,7 @@ public class Kademlia {
     final Node myself;
     final Bucket[] buckets;
     final ArrayList<Connection> connections;
-    final HashMap<Long, byte[]> storedData = new HashMap<>();
+    final DataStore storedData;
     public Kademlia(int port, long nodeid) throws IOException {
         this.port = port;
         String ip = whatIsMyIp();
@@ -220,6 +217,7 @@ public class Kademlia {
             buckets[i] = new Bucket(i, this);
         }
         this.connections = new ArrayList<>();
+        storedData = new DataStore("port" + port);
         runKademlia();
     }
     public Bucket bucketFromNode(Node n) {
