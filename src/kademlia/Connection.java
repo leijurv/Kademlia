@@ -40,12 +40,9 @@ public class Connection {
     }
     public void doListen() throws IOException {
         new Thread() {
+            private final Random rand = new Random();
             @Override
             public void run() {
-                if (true) {
-                    return;
-                }
-                Random r = new Random();
                 try {
                     while (isStillRunning) {
                         RequestPing rp = new RequestPing();
@@ -55,14 +52,14 @@ public class Connection {
                             socket.close();
                             return;
                         }
-                        Thread.sleep(1000);
+                        Thread.sleep(10000);
                         if (!isStillRunning || isRequestStillPending(rp)) {
-                            System.out.println("TOOK MORE THAN ONE SECOND TO RESPOND. PING FAILED.");
+                            System.out.println("TOOK MORE THAN TEN SECONDS TO RESPOND. PING FAILED.");
                             isStillRunning = false;
                             socket.close();
                             return;
                         }
-                        Thread.sleep(60000 + r.nextInt(100));//randomness. dont both ping each other at the exact same time.
+                        Thread.sleep(60000 + rand.nextInt(5000));//randomness. dont both ping each other at the exact same time.
                     }
                 } catch (InterruptedException | IOException ex) {
                     Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);

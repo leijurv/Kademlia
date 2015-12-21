@@ -262,9 +262,8 @@ public class Kademlia {
     public Bucket bucketFromDistance(long distance) {
         return buckets[bucketIndexFromDistance(distance)];
     }
-    public static int bucketIndexFromDistance(long distance) {
+    public static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
         for (int i = 0; i < 64; i++) {
-            //System.out.println(i + " " + distance + " " + ((1L << i) - 1));
             if (distance <= ((1L << i) - 1)) {
                 return i;
             }
@@ -400,7 +399,9 @@ public class Kademlia {
                     System.out.println("Error with connection " + conn + ", removing from list");
                     connections.remove(conn);
                     conn.isStillRunning = false;
-                    heyThisNodeIsBeingAnnoying(other);
+                    //heyThisNodeIsBeingAnnoying(other);
+                    //for an error with a connection, don't delete the node
+                    //but if reconnect fails, block that sucker
                 }
             }
         }.start();
@@ -408,18 +409,27 @@ public class Kademlia {
         return conn;
     }
     private Connection establishConnection(Node node) throws IOException {
-        if (Kademlia.verbose) {
-            System.out.println(myself + " is proactively establishing connection to " + node);
+        try {
+            if (Kademlia.verbose) {
+                System.out.println(myself + " is proactively establishing connection to " + node);
+            }
+            if (node.equals(myself)) {
+                throw new IllegalArgumentException("can't make a connection to yourself");
+            }
+            Socket s = new Socket(node.host, node.port);
+            Connection conn = handleSocket(s);
+            if (conn.node.nodeid != node.nodeid || !conn.node.sameHost(node)) {
+                s.close();//this will trigger an IOException to remove conn from the list
+                heyThisNodeIsBeingAnnoying(node);
+                heyThisNodeIsBeingAnnoying(conn.node);
+                throw new IllegalStateException("Tried to connect to " + node + " and they said they were " + conn.node);
+            }
+            return conn;
+        } catch (IllegalArgumentException | IOException | IllegalStateException e) {
+            //if error while establishing connection, node is probably down
+            heyThisNodeIsBeingAnnoying(node);
+            throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
         }
-        if (node.equals(myself)) {
-            throw new IllegalArgumentException("can't make a connection to yourself");
-        }
-        Socket s = new Socket(node.host, node.port);
-        Connection conn = handleSocket(s);
-        if (conn.node.nodeid != node.nodeid || !conn.node.sameHost(node)) {
-            throw new IllegalStateException("Tried to connect to " + node + " and they said they were " + conn.node);
-        }
-        return conn;
     }
     public static String whatIsMyIp() throws IOException {
         return InetAddress.getLocalHost().getHostAddress();
