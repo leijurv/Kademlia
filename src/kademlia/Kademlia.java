@@ -104,42 +104,7 @@ public class Kademlia {
                     case "putfile":
                         String name = command.substring(0, command.indexOf(" "));
                         String filepath = command.substring(command.indexOf(" ") + 1, command.length());
-                        System.out.println("Putting " + filepath + " under name " + name);
-                        FileInputStream in = new FileInputStream(new File(filepath));
-                        int size = in.available();
-                        int partSize = 524288;
-                        int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
-                        System.out.println("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
-                        ByteArrayOutputStream theData = new ByteArrayOutputStream();
-                        DataOutputStream out = new DataOutputStream(theData);
-                        out.writeInt(size);
-                        out.writeInt(partSize);
-                        kad.progress = 0;
-                        kad.max = partitions + 1;
-                        long start = System.currentTimeMillis();
-                        for (int i = 0; i < partitions; i++) {
-                            int psize = partSize;
-                            if (i == partitions - 1) {
-                                psize = size - (partitions - 1) * partSize;
-                            }
-                            byte[] y = new byte[psize];
-                            int j = in.read(y);
-                            if (j != psize) {
-                                throw new IllegalStateException("screw you fileinputstream");
-                            }
-                            long hash = Lookup.hash(y);
-                            out.writeLong(hash);
-                            System.out.println("psize: " + psize + ", i: " + i + ", hash: " + hash);
-                            new Thread() {
-                                @Override
-                                public void run() {
-                                    new Lookup(hash, kad, y, start).execute();
-                                }
-                            }.start();
-                            Thread.sleep(100);
-                        }
-                        new Lookup(name, kad, theData.toByteArray(), start).execute();
-                        in.close();
+                        kad.putfile(new File(filepath), name);
                         break;
                     case "help":
                         System.out.println("HELP");
@@ -227,6 +192,44 @@ public class Kademlia {
         this.connections = new ArrayList<>();
         storedData = new DataStore("port" + port, this);
         runKademlia();
+    }
+    public void putfile(File file, String name) throws IOException, InterruptedException {
+        System.out.println("Putting " + file + " under name " + name);
+        FileInputStream in = new FileInputStream(file);
+        int size = in.available();
+        int partSize = 524288;
+        int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
+        System.out.println("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
+        ByteArrayOutputStream theData = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(theData);
+        out.writeInt(size);
+        out.writeInt(partSize);
+        progress = 0;
+        max = partitions + 1;
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < partitions; i++) {
+            int psize = partSize;
+            if (i == partitions - 1) {
+                psize = size - (partitions - 1) * partSize;
+            }
+            byte[] y = new byte[psize];
+            int j = in.read(y);
+            if (j != psize) {
+                throw new IllegalStateException("screw you fileinputstream");
+            }
+            long hash = Lookup.hash(y);
+            out.writeLong(hash);
+            System.out.println("psize: " + psize + ", i: " + i + ", hash: " + hash);
+            new Thread() {
+                @Override
+                public void run() {
+                    new Lookup(hash, Kademlia.this, y, start).execute();
+                }
+            }.start();
+            Thread.sleep(100);
+        }
+        new Lookup(name, this, theData.toByteArray(), start).execute();
+        in.close();
     }
     public void put(long key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
