@@ -79,21 +79,23 @@ public class FileAssembly {
         }
     }
     private void onPartCompleted1(long key, byte[] contents, boolean t) {
-        boolean encountered = false;
+        int encounters = 0;
         for (int i = 0; i < hashes.length; i++) {
             if (hashes[i] == key) {
                 if (t) {
                     System.out.println("Received part " + i + ", with hash " + key);
                 }
                 parts[i] = contents;
-                if (encountered) {
-                    System.out.println("got " + key + " more than once");
-                }
-                encountered = true;
+                encounters++;
             }
         }
-        if (!encountered) {
-            throw new IllegalArgumentException("shrek");
+        if (encounters != 1) {
+            if (encounters == 0) {
+                throw new IllegalArgumentException("shrek");
+            }
+            if (encounters > 1) {
+                System.out.println("got " + key + " " + encounters + " times. this means that the file has the exact same chunk repeated " + encounters + " times");
+            }
         }
     }
 }
