@@ -92,14 +92,7 @@ public class Kademlia {
                     case "getfile":
                         String storPath = command.split(" ")[1];
                         String keyF = command.split(" ")[0];
-                        System.out.println("Getting " + keyF + " and storing in " + storPath);
-                        byte[] caced = kad.storedData.get(Lookup.hash(keyF.getBytes()));
-                        if (caced != null) {
-                            System.out.println("metadata stored locally");
-                            new FileAssembly(caced, kad, storPath).assemble();
-                            break;
-                        }
-                        new Lookup(keyF, kad, true, true, storPath).execute();
+                        kad.getfile(keyF, storPath);
                         break;
                     case "putfile":
                         String name = command.substring(0, command.indexOf(" "));
@@ -193,43 +186,56 @@ public class Kademlia {
         storedData = new DataStore("port" + port, this);
         runKademlia();
     }
+    public void getfile(String keyF, File storPath) throws IOException {
+        getfile(keyF, storPath.getAbsolutePath());
+    }
+    public void getfile(String keyF, String storPath) throws IOException {
+        System.out.println("Getting " + keyF + " and storing in " + storPath);
+        byte[] caced = storedData.get(Lookup.hash(keyF.getBytes()));
+        if (caced != null) {
+            System.out.println("metadata stored locally");
+            new FileAssembly(caced, this, storPath).assemble();
+            return;
+        }
+        new Lookup(keyF, this, true, true, storPath).execute();
+    }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         System.out.println("Putting " + file + " under name " + name);
-        FileInputStream in = new FileInputStream(file);
-        int size = in.available();
-        int partSize = 524288;
-        int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
-        System.out.println("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
-        ByteArrayOutputStream theData = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(theData);
-        out.writeInt(size);
-        out.writeInt(partSize);
-        progress = 0;
-        max = partitions + 1;
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < partitions; i++) {
-            int psize = partSize;
-            if (i == partitions - 1) {
-                psize = size - (partitions - 1) * partSize;
-            }
-            byte[] y = new byte[psize];
-            int j = in.read(y);
-            if (j != psize) {
-                throw new IllegalStateException("screw you fileinputstream");
-            }
-            long hash = Lookup.hash(y);
-            out.writeLong(hash);
-            System.out.println("psize: " + psize + ", i: " + i + ", hash: " + hash);
-            new Thread() {
-                @Override
-                public void run() {
-                    new Lookup(hash, Kademlia.this, y, start).execute();
+        try (FileInputStream in = new FileInputStream(file)) {
+            int size = in.available();
+            int partSize = 524288;
+            int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
+            System.out.println("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
+            ByteArrayOutputStream theData = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(theData);
+            out.writeInt(size);
+            out.writeInt(partSize);
+            progress = 0;
+            max = partitions + 1;
+            long start = System.currentTimeMillis();
+            for (int i = 0; i < partitions; i++) {
+                int psize = partSize;
+                if (i == partitions - 1) {
+                    psize = size - (partitions - 1) * partSize;
                 }
-            }.start();
-            Thread.sleep(100);
+                byte[] y = new byte[psize];
+                int j = in.read(y);
+                if (j != psize) {
+                    throw new IllegalStateException("screw you fileinputstream");
+                }
+                long hash = Lookup.hash(y);
+                out.writeLong(hash);
+                System.out.println("psize: " + psize + ", i: " + i + ", hash: " + hash);
+                new Thread() {
+                    @Override
+                    public void run() {
+                        new Lookup(hash, Kademlia.this, y, start).execute();
+                    }
+                }.start();
+                Thread.sleep(100);
+            }
+            new Lookup(name, this, theData.toByteArray(), start).execute();
         }
-        new Lookup(name, this, theData.toByteArray(), start).execute();
-        in.close();
     }
     public void put(long key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
@@ -285,7 +291,20 @@ public class Kademlia {
         Bucket bucket = bucketFromNode(node);
         bucket.removeNode(node);
     }
-    public ArrayList<Node> findNClosest(int num, long search) {
+    public ArrayList<Node> findNClosest(int num, long search) {//less efficent, but works correctly
+        ArrayList<Node> closest = new ArrayList<>();
+        for (Bucket bucket : buckets) {
+            for (long nodeid : bucket.nodeids) {
+                closest.add(bucket.nodes.get(nodeid));
+            }
+        }
+        closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
+        while (closest.size() > num) {
+            closest.remove(closest.size() - 1);
+        }
+        return closest;
+    }
+    public ArrayList<Node> findNClosest1(int num, long search) {//this is a more efficient way to do it, but it doesn't quite work right
         ArrayList<Node> closest = new ArrayList<>();
         long currWorst = 0;
         int nf = 0;
