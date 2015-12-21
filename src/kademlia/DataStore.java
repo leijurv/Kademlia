@@ -28,6 +28,7 @@ public class DataStore {
             readFromSave();
         }
         new File(dataStoreFile).mkdirs();
+        startThread();
     }
 
     public class StoredData {
@@ -121,11 +122,13 @@ public class DataStore {
     }
     final HashMap<Long, StoredData> storedData = new HashMap<>();
     final Object lock = new Object();
+    volatile boolean shouldSave = true;
     public byte[] get(long key) {
         StoredData data = storedData.get(key);
         if (data == null) {
             return null;
         }
+        shouldSave = true;
         return data.getData();
     }
     public boolean hasKey(long key) {
@@ -145,21 +148,15 @@ public class DataStore {
                     System.out.println("Not overwriting because hash is the same " + hash);
                     return;
                 }
+                shouldSave = true;
                 data.update(value, lastModified);
                 return;
             }
+            shouldSave = true;
             StoredData data = new StoredData(key, value, lastModified);
             storedData.put(key, data);
             data.beginSave();
         }
-    }
-    private void beginSave() {
-        new Thread() {
-            @Override
-            public void run() {
-                doSave();
-            }
-        }.start();
     }
     private void doSave() {
         synchronized (lock) {
@@ -173,6 +170,7 @@ public class DataStore {
             } catch (IOException ex) {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
             }
+            shouldSave = false;
         }
     }
     private File getSaveFile() {
@@ -192,5 +190,22 @@ public class DataStore {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+    private void startThread() {
+        new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(10000);
+                        if (shouldSave) {
+                            doSave();
+                        }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        }.start();
     }
 }
