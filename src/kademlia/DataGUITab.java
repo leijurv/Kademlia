@@ -41,20 +41,20 @@ public class DataGUITab extends Tab {
         this.setText("Data");
         this.setClosable(false);
         
-        GridPane dataGrid = new GridPane();
-        dataGrid.setAlignment(Pos.TOP_CENTER);
-        dataGrid.setHgap(10);
-        dataGrid.setVgap(10);
+        GridPane grid = new GridPane();
+        grid.setAlignment(Pos.TOP_CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
         //dataGrid.setGridLinesVisible(true);
         for (int i = 0; i < 10; i++) {
             ColumnConstraints col = new ColumnConstraints();
             col.setPercentWidth(10);
-            dataGrid.getColumnConstraints().add(col);
+            grid.getColumnConstraints().add(col);
         }
         for (int i = 0; i < 10; i++) {
             RowConstraints row = new RowConstraints();
             row.setPercentHeight(10);
-            dataGrid.getRowConstraints().add(row);
+            grid.getRowConstraints().add(row);
         }
         //Table View
         TableView<KeyValueData> table = new TableView<>();
@@ -70,13 +70,13 @@ public class DataGUITab extends Tab {
         valCol.setSortable(false);
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
-        dataGrid.add(table, 0, 0, 10, 5);
+        grid.add(table, 0, 0, 10, 5);
         
         /* GET */
         //TextField
         TextField getValueTextField = new TextField();
         getValueTextField.setPromptText("Key");
-        dataGrid.add(getValueTextField, 0, 5, 3, 1);
+        grid.add(getValueTextField, 0, 5, 3, 1);
         //Button
         Button getBtn = new Button();
         getBtn.setText("Get Value");
@@ -90,16 +90,16 @@ public class DataGUITab extends Tab {
                 getValueTextField.clear();
             }
         });
-        dataGrid.add(getBtn, 3, 5);
+        grid.add(getBtn, 3, 5);
         /* PUT */
         //TextField
         TextField putKeyTextField = new TextField();
         putKeyTextField.setPromptText("Key");
-        dataGrid.add(putKeyTextField, 5, 5, 1, 1);
+        grid.add(putKeyTextField, 5, 5, 1, 1);
         //TextField
         TextField putValueTextField = new TextField();
         putValueTextField.setPromptText("Value");
-        dataGrid.add(putValueTextField, 6, 5, 2, 1);
+        grid.add(putValueTextField, 6, 5, 2, 1);
         //Button
         Button putBtn = new Button();
         putBtn.setText("Put Key/Value");
@@ -115,12 +115,12 @@ public class DataGUITab extends Tab {
                 putValueTextField.clear();
             }
         });
-        dataGrid.add(putBtn, 8, 5, 2, 1);
+        grid.add(putBtn, 8, 5, 2, 1);
         /* PUT FILE */
         //TextField
         TextField putFileKeyTextField = new TextField();
         putFileKeyTextField.setPromptText("Key");
-        dataGrid.add(putFileKeyTextField, 0, 7, 3, 1);
+        grid.add(putFileKeyTextField, 0, 7, 3, 1);
         //Button
         Button putFileBtn = new Button();
         putFileBtn.setText("Put File");
@@ -136,6 +136,7 @@ public class DataGUITab extends Tab {
                 if (file != null) {
                     try {
                         kad.putfile(file, putFileKeyTextField.getText());
+                        putFileKeyTextField.clear();
                     } catch (IOException | InterruptedException ex) {
                         Alert alert = new Alert(Alert.AlertType.ERROR, ex.getLocalizedMessage());
                         alert.show();
@@ -143,12 +144,12 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        dataGrid.add(putFileBtn, 3, 7);
+        grid.add(putFileBtn, 3, 7);
         /* GET FILE */
         //TextField
         TextField getFileKeyTextField = new TextField();
         getFileKeyTextField.setPromptText("Key");
-        dataGrid.add(getFileKeyTextField, 5, 7, 3, 1);
+        grid.add(getFileKeyTextField, 5, 7, 3, 1);
         //Button
         Button getFileBtn = new Button();
         getFileBtn.setText("Get File");
@@ -164,6 +165,7 @@ public class DataGUITab extends Tab {
                 if (file != null) {
                     try {
                         kad.getfile(getFileKeyTextField.getText(), file);
+                        getFileKeyTextField.clear();
                     } catch (IOException ex) {
                         Alert alert = new Alert(Alert.AlertType.ERROR, ex.getLocalizedMessage());
                         alert.show();
@@ -171,16 +173,16 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        dataGrid.add(getFileBtn, 8, 7);
+        grid.add(getFileBtn, 8, 7);
         /* Progress Bar */
         fileProgressBar = new ProgressBar();
         fileProgressBar.setProgress(0);
         fileProgressBar.setDisable(true);
         fileProgressBar.setPrefWidth(980);
-        dataGrid.add(fileProgressBar, 1, 9, 8, 1);
+        grid.add(fileProgressBar, 1, 9, 8, 1);
         
         //Tab
-        this.setContent(dataGrid);
+        this.setContent(grid);
     }
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
         keyValueDataList.add(new KeyValueData(rawKey, rawValue));
