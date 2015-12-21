@@ -97,11 +97,11 @@ public class GUI extends Application {
         //TextField
         TextField putKeyTextField = new TextField();
         putKeyTextField.setPromptText("Key");
-        dataGrid.add(putKeyTextField, 0, 6, 3, 1);
+        dataGrid.add(putKeyTextField, 5, 5, 1, 1);
         //TextField
         TextField putValueTextField = new TextField();
         putValueTextField.setPromptText("Value");
-        dataGrid.add(putValueTextField, 3, 6, 3, 1);
+        dataGrid.add(putValueTextField, 6, 5, 2, 1);
         //Button
         Button putBtn = new Button();
         putBtn.setText("Put Key/Value");
@@ -117,7 +117,7 @@ public class GUI extends Application {
                 putValueTextField.clear();
             }
         });
-        dataGrid.add(putBtn, 6, 6, 2, 1);
+        dataGrid.add(putBtn, 8, 5, 2, 1);
         /* PUT FILE */
         //TextField
         TextField putFileKeyTextField = new TextField();
@@ -136,7 +136,6 @@ public class GUI extends Application {
                 FileChooser fileChooser = new FileChooser();
                 File file = fileChooser.showOpenDialog(primaryStage);
                 if (file != null) {
-                    System.out.println("file!!!");
                     try {
                         kad.putfile(file, putFileKeyTextField.getText());
                     } catch (IOException | InterruptedException ex) {
@@ -147,6 +146,34 @@ public class GUI extends Application {
             }
         });
         dataGrid.add(putFileBtn, 3, 7);
+        /* GET FILE */
+        //TextField
+        TextField getFileKeyTextField = new TextField();
+        getFileKeyTextField.setPromptText("Key");
+        dataGrid.add(getFileKeyTextField, 5, 7, 3, 1);
+        //Button
+        Button getFileBtn = new Button();
+        getFileBtn.setText("Get File");
+        getFileBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                if (getFileKeyTextField.getText().length() == 0) {
+                    return;
+                }
+                //kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
+                FileChooser fileChooser = new FileChooser();
+                File file = fileChooser.showSaveDialog(primaryStage);
+                if (file != null) {
+                    try {
+                        kad.putfile(file, getFileKeyTextField.getText());
+                    } catch (IOException | InterruptedException ex) {
+                        Alert alert = new Alert(AlertType.ERROR, ex.getLocalizedMessage());
+                        alert.show();
+                    }
+                }
+            }
+        });
+        dataGrid.add(getFileBtn, 8, 7);
         
         //Tab
         tab.setContent(dataGrid);
