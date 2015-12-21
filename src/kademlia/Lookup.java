@@ -140,8 +140,10 @@ public class Lookup {
                         if (kademliaRef.progress == kademliaRef.max) {
                             System.out.println("All done storing");
                             kademliaRef.max = 0;
+                            GUI.updateProgressBar(1);
                         } else {
-                            final double progressPercentage = ((double) (kademliaRef.progress)) / ((double) (kademliaRef.max));
+                            final float progressPercentage = ((float) (kademliaRef.progress)) / ((float) (kademliaRef.max));
+                            GUI.updateProgressBar(progressPercentage);
                             final int width = 50; // progress bar width in chars
                             System.out.print("\r[");
                             int i = 0;
