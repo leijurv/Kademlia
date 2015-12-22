@@ -31,19 +31,17 @@ public class Lookup {
     FileAssembly assembly = null;
     String storageLocation = null;
     long lastMod = 0;
-    static MessageDigest md = null;
-    static {
-        try {
-            md = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, e);
-        }
-    }
     public static long hash(byte[] o) {
         return hash(o, 0, o.length);
     }
     public static long hash(byte[] o, int offset, int length) {
-        md.reset();
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, e);
+            return -1;
+        }
         md.update(o, offset, length);
         String string = new String(md.digest());
         long h = 1125899906842597L;

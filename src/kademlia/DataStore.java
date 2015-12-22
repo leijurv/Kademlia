@@ -98,6 +98,10 @@ public class DataStore {
                             throw new IllegalStateException("kush");
                         }
                         data = temp;
+                        long checksum = Lookup.hash(data);
+                        if (checksum != hash) {
+                            System.out.println("Did read from disk. Expected hash: " + hash + ". Real hash: " + checksum);
+                        }
                     } catch (IOException ex) {
                         Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
                     }
