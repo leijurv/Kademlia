@@ -91,14 +91,10 @@ public class DataStore {
                 }
                 File save = getFile();
                 if (save.exists()) {
-                    try (FileInputStream in = new FileInputStream(save)) {
-                        int fileSize = in.available();
-                        if (fileSize != size) {
-                            throw new IllegalStateException("save is wrong size");
-                        }
-                        byte[] temp = new byte[fileSize];
+                    try (DataInputStream in = new DataInputStream(new FileInputStream(save))) {
+                        byte[] temp = new byte[(int) size];
                         int j = in.read(temp);
-                        if (j != fileSize) {
+                        if (j != size) {
                             throw new IllegalStateException("kush");
                         }
                         data = temp;
