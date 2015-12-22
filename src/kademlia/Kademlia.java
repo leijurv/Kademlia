@@ -381,7 +381,7 @@ public class Kademlia {
         }
         return establishConnection(n);
     }
-    private Connection handleSocket(Socket socket) throws IOException {
+    public Connection handleSocket(Socket socket) throws IOException {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
         if (Kademlia.verbose) {
@@ -397,6 +397,7 @@ public class Kademlia {
                 } catch (IOException ex) {
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Error with connection " + conn + ", removing from list");
+                    ConnectionGUITab.stoppedConnection(conn.node.nodeid);
                     connections.remove(conn);
                     conn.isStillRunning = false;
                     //heyThisNodeIsBeingAnnoying(other);
