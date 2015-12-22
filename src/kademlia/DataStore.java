@@ -27,11 +27,12 @@ public class DataStore {
     final String dataStoreFile;
     final Random rand;
     final Kademlia kademliaRef;
-    public DataStore(String data, Kademlia kademliaRef) {
+    public DataStore(Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
         this.rand = new Random();
-        this.dataStoreFile = System.getProperty("user.home") + "/.kademlia/" + data + "/";
+        this.dataStoreFile = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
+            System.out.println("datastorage is reading from save");
             readFromSave();
         }
         new File(dataStoreFile).mkdirs();

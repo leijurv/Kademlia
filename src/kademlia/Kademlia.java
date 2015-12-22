@@ -37,8 +37,7 @@ public class Kademlia {
             verbose = true;
         }
         int myPort = Integer.parseInt(args[0]);
-        long id = Math.abs(new Random().nextLong());
-        Kademlia kad = new Kademlia(myPort, id);
+        Kademlia kad = new Kademlia(myPort);
         new Thread() {
             @Override
             public void run() {
@@ -127,9 +126,9 @@ public class Kademlia {
         }
     }
     public static void test(String[] args) throws IOException, InterruptedException {
-        Kademlia k1 = new Kademlia(5021, 5);
-        Kademlia k2 = new Kademlia(5022, 6);
-        Kademlia k3 = new Kademlia(5023, 58008);
+        Kademlia k1 = new Kademlia(5021);
+        Kademlia k2 = new Kademlia(5022);
+        Kademlia k3 = new Kademlia(5023);
         Connection k2tok3 = k2.establishConnection(k3.myself);
         Connection k1tok2 = k1.establishConnection(k2.myself);
         Thread.sleep(500);
@@ -174,18 +173,36 @@ public class Kademlia {
     final Bucket[] buckets;
     final ArrayList<Connection> connections;
     final DataStore storedData;
-    public Kademlia(int port, long nodeid) throws IOException {
+    final String dataStorageDir;
+    public Kademlia(int port) throws IOException {
         this.port = port;
+        dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
+        storedData = new DataStore(this);
         String ip = whatIsMyIp();
         System.out.println("I am " + ip);
-        this.myself = new Node(nodeid, ip, port);
+        long nodeid;
         this.buckets = new Bucket[64];
-        for (int i = 0; i < 64; i++) {
-            buckets[i] = new Bucket(i, this);
+        if (getSaveFile().exists()) {
+            System.out.println("Read from save");
+            try (FileInputStream fileIn = new FileInputStream(getSaveFile())) {
+                DataInputStream in = new DataInputStream(fileIn);
+                nodeid = in.readLong();
+                for (int i = 0; i < 64; i++) {
+                    buckets[i] = new Bucket(i, this, in);
+                }
+            }
+        } else {
+            nodeid = Math.abs(new Random().nextLong());
+            for (int i = 0; i < 64; i++) {
+                buckets[i] = new Bucket(i, this);
+            }
         }
+        this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
-        storedData = new DataStore("port" + port, this);
         runKademlia();
+    }
+    private File getSaveFile() {
+        return new File(dataStorageDir + "main");
     }
     public void getfile(String keyF, File storPath) throws IOException {
         getfile(keyF, storPath.getAbsolutePath());
@@ -271,7 +288,7 @@ public class Kademlia {
         throw new IllegalStateException("your mom " + distance);
     }
     public void addOrUpdate(Node node) {
-        if (node.nodeid == myself.nodeid) {
+        if (node.equals(myself)) {
             if (Kademlia.verbose) {
                 System.out.println(myself + " trying to add/update myself, returning");
             }
@@ -395,11 +412,11 @@ public class Kademlia {
                 try {
                     conn.doListen();
                 } catch (IOException ex) {
+                    connections.remove(conn);
+                    conn.isStillRunning = false;
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Error with connection " + conn + ", removing from list");
                     ConnectionGUITab.stoppedConnection(conn.node.nodeid);
-                    connections.remove(conn);
-                    conn.isStillRunning = false;
                     //heyThisNodeIsBeingAnnoying(other);
                     //for an error with a connection, don't delete the node
                     //but if reconnect fails, block that sucker

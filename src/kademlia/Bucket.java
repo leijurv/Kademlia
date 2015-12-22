@@ -5,6 +5,8 @@
  */
 package kademlia;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +29,26 @@ public class Bucket {
         this.nodeids = new ArrayList<>();
         this.replacementCache = new ArrayList<>();
         this.kademliaRef = kademliaRef;
+    }
+    public Bucket(int distance, Kademlia kademliaRef, DataInputStream in) throws IOException {
+        int numNodes = in.readInt();
+        this.distance = distance;
+        this.nodes = new HashMap<>();
+        this.nodeids = new ArrayList<>(numNodes);
+        this.replacementCache = new ArrayList<>();
+        this.kademliaRef = kademliaRef;
+        for (int i = 0; i < numNodes; i++) {
+            Node node = new Node(in);
+            nodeids.add(node.nodeid);
+            nodes.put(node.nodeid, node);
+        }
+    }
+    public void write(DataOutputStream out) throws IOException {
+        out.writeInt(nodeids.size());
+        for (long nodeid : nodeids) {
+            Node node = nodes.get(nodeid);
+            node.write(out);
+        }
     }
     public boolean addOrUpdate(Node node) {
         long id = node.nodeid;
