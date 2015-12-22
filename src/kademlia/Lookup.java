@@ -25,6 +25,8 @@ public class Lookup {
     final boolean isKeyLookup;
     Node finalResult;
     byte[] contentsToPut = null;
+    int contOffset = 0;
+    int contLen = 0;
     boolean needsToAssemble = false;
     FileAssembly assembly = null;
     String storageLocation = null;
@@ -38,8 +40,12 @@ public class Lookup {
         }
     }
     public static long hash(byte[] o) {
+        return hash(o, 0, o.length);
+    }
+    public static long hash(byte[] o, int offset, int length) {
         md.reset();
-        String string = new String(md.digest(o));
+        md.update(o, offset, length);
+        String string = new String(md.digest());
         long h = 1125899906842597L;
         int len = string.length();
         for (int i = 0; i < len; i++) {
@@ -48,14 +54,17 @@ public class Lookup {
         return Math.abs(h);
     }
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
+        this(key, kademliaRef, contents, lastModified, 0, contents.length);
+    }
+    public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified, int offset, int length) {
         this(key, kademliaRef, false);
         contentsToPut = contents;
         this.lastMod = lastModified;
+        this.contOffset = offset;
+        this.contLen = length;
     }
     public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
-        this(path, kademliaRef, false);
-        contentsToPut = contents;
-        this.lastMod = lastModified;
+        this(hash(path.getBytes()), kademliaRef, contents, lastModified);
     }
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
@@ -123,11 +132,15 @@ public class Lookup {
                 if (contentsToPut != null) {
                     for (Node storageNode : closest) {
                         if (kademliaRef.myself.equals(storageNode)) {
-                            kademliaRef.storedData.put(key, contentsToPut, lastMod);
+                            byte[] temp = new byte[contLen - contOffset];
+                            for (int i = 0; i < temp.length; i++) {
+                                temp[i] = contentsToPut[i + contOffset];
+                            }
+                            kademliaRef.storedData.put(key, temp, lastMod);
                             console.log("done, stored locally");
                         } else {
                             try {
-                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod));
+                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod, contOffset, contLen));
                                 console.log("done, stored on " + storageNode);
                             } catch (IOException ex) {
                                 Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);

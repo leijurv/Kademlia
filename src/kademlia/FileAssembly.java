@@ -69,6 +69,10 @@ public class FileAssembly {
         console.log("LOOKING FOR " + search);
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
+        long partHash = Lookup.hash(contents);
+        if (partHash != key) {
+            console.log("Something's weird. key is " + key + " but hash(contents) is " + partHash);
+        }
         onPartCompleted1(key, contents, t);
         int numUncompleted = 0;
         for (int i = 0; i < hashes.length; i++) {

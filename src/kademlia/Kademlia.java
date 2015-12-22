@@ -281,38 +281,48 @@ public class Kademlia {
         try (FileInputStream fileIn = new FileInputStream(file)) {
             console.log("File is size " + fileIn.available());
             ByteArrayInputStream in = cache(new DeflaterInputStream(fileIn));
-            console.log("Compressed is size " + in.available());
-            int size = in.available();
             int partSize = 524288;
-            int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
-            console.log("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
-            ByteArrayOutputStream theData = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(theData);
-            out.writeInt(size);
-            out.writeInt(partSize);
             progress = 0;
-            max = partitions + 1;
+            max = 1;
             long start = System.currentTimeMillis();
-            for (int i = 0; i < partitions; i++) {
-                int psize = partSize;
-                if (i == partitions - 1) {
-                    psize = size - (partitions - 1) * partSize;
-                }
-                byte[] y = new byte[psize];
+            ArrayList<Long> hashes = new ArrayList<>();
+            int summedSize = 0;
+            boolean wl = false;
+            for (int i = 0; true; i++) {
+                byte[] y = new byte[partSize];
                 int j = in.read(y);
-                if (j != psize) {
-                    throw new IllegalStateException("screw you fileinputstream");
+                if (j < 0) {
+                    if (!wl) {
+                        console.log("Either this file has only one part, or it was exactly divisible into parts of " + partSize + ", or I messed something up");
+                    }
+                    break;
                 }
-                long hash = Lookup.hash(y);
-                out.writeLong(hash);
-                console.log("psize: " + psize + ", i: " + i + ", hash: " + hash);
+                if (wl) {
+                    throw new IllegalStateException("More than one partial piece");
+                }
+                if (j != partSize) {
+                    wl = true;
+                }
+                max++;
+                summedSize += j;
+                long hash = Lookup.hash(y, 0, j);
+                hashes.add(hash);
+                console.log("j: " + j + ", i: " + i + ", hash: " + hash);
                 new Thread() {
                     @Override
                     public void run() {
-                        new Lookup(hash, Kademlia.this, y, start).execute();
+                        new Lookup(hash, Kademlia.this, y, start, 0, j).execute();
                     }
                 }.start();
                 Thread.sleep(100);
+            }
+            console.log("Dividing file of size " + summedSize + " into " + hashes.size() + " partitions of size " + partSize);
+            ByteArrayOutputStream theData = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(theData);
+            out.writeInt(summedSize);
+            out.writeInt(partSize);
+            for (long l : hashes) {
+                out.writeLong(l);
             }
             new Lookup(name, this, theData.toByteArray(), start).execute();
         }
