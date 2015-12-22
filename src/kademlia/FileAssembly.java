@@ -71,7 +71,7 @@ public class FileAssembly {
     public void onPartCompleted(long key, byte[] contents, boolean t) {
         long partHash = Lookup.hash(contents);
         if (partHash != key) {
-            console.log("Something's weird. key is " + key + " but hash(contents) is " + partHash);
+            throw new IllegalStateException("Something's weird. key is " + key + " but hash(contents) is " + partHash);
         }
         onPartCompleted1(key, contents, t);
         int numUncompleted = 0;
