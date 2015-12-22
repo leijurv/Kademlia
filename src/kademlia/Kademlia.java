@@ -10,6 +10,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -19,6 +20,8 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -31,6 +34,7 @@ public class Kademlia {
     int max = 0;
     /**
      * @param args the command line arguments
+     * @throws java.io.IOException
      */
     public static void main(String[] args) throws IOException {
         if (args.length > 1 && args[1].equals("-v")) {
@@ -174,6 +178,7 @@ public class Kademlia {
     final ArrayList<Connection> connections;
     final DataStore storedData;
     final String dataStorageDir;
+    volatile boolean shouldSave = true;
     public Kademlia(int port) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
@@ -183,7 +188,7 @@ public class Kademlia {
         console.log("I am " + ip);
         this.buckets = new Bucket[64];
         if (getSaveFile().exists()) {
-            System.out.println("Read from save");
+            console.log("Kademlia is reading from save");
             try (FileInputStream fileIn = new FileInputStream(getSaveFile())) {
                 DataInputStream in = new DataInputStream(fileIn);
                 nodeid = in.readLong();
@@ -200,6 +205,34 @@ public class Kademlia {
         this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
         runKademlia();
+        startSaveThread();
+    }
+    private void startSaveThread() {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        Thread.sleep(1000);
+                        if (shouldSave) {
+                            shouldSave = false;
+                            writeToSave();
+                        }
+                    }
+                } catch (InterruptedException | IOException ex) {
+                    Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }.start();
+    }
+    private void writeToSave() throws IOException {
+        try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
+            DataOutputStream out = new DataOutputStream(fileOut);
+            out.writeLong(myself.nodeid);
+            for (int i = 0; i < 64; i++) {
+                buckets[i].write(out);
+            }
+        }
     }
     private File getSaveFile() {
         return new File(dataStorageDir + "main");
@@ -309,15 +342,16 @@ public class Kademlia {
         bucket.removeNode(node);
     }
     public ArrayList<Node> findNClosest(int num, long search) {//less efficent, but works correctly
-        ArrayList<Node> closest = new ArrayList<>();
-        for (Bucket bucket : buckets) {
-            for (long nodeid : bucket.nodeids) {
-                closest.add(bucket.nodes.get(nodeid));
-            }
-        }
+        /*ArrayList<Node> closest = new ArrayList<>();
+         for (Bucket bucket : buckets) {
+         for (long nodeid : bucket.nodeids) {
+         closest.add(bucket.nodes.get(nodeid));
+         }
+         }*/
+        ArrayList<Node> closest = Stream.of(buckets).flatMap(bucket -> bucket.nodeids.stream().map(nodeid -> bucket.nodes.get(nodeid))).collect(Collectors.toCollection(ArrayList::new));
         closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
-        while (closest.size() > num) {
-            closest.remove(closest.size() - 1);
+        if (closest.size() > num) {
+            return new ArrayList<>(closest.subList(0, num));
         }
         return closest;
     }

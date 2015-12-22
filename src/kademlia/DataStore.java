@@ -32,7 +32,11 @@ public class DataStore {
         this.rand = new Random();
         this.dataStoreFile = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
-            System.out.println("datastorage is reading from save");
+            try {
+                console.log("datastorage is reading from save " + getSaveFile().getCanonicalPath());
+            } catch (IOException ex) {
+                Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
+            }
             readFromSave();
         }
         new File(dataStoreFile).mkdirs();
