@@ -14,14 +14,22 @@ import java.io.IOException;
  * @author leijurv
  */
 public class Settings {
-    final Kademlia kademliaRef;
+    private final Kademlia kademliaRef;
+    public volatile long maxRAMSizeBytes;
+    public volatile int garbageCollectionIntervalSec;
     public Settings(Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
+        this.maxRAMSizeBytes = 10 * 1048576;
+        this.garbageCollectionIntervalSec = 20;
     }
     public Settings(DataInputStream in, Kademlia kademliaRef) throws IOException {
         this.kademliaRef = kademliaRef;
+        this.maxRAMSizeBytes = in.readLong();
+        this.garbageCollectionIntervalSec = in.readInt();
     }
     public void write(DataOutputStream out) throws IOException {
+        out.writeLong(maxRAMSizeBytes);
+        out.writeInt(garbageCollectionIntervalSec);
     }
     public void onChange() {
         kademliaRef.heyYouShouldSaveSoon();
