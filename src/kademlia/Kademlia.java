@@ -405,6 +405,7 @@ public class Kademlia {
                 }
             }
         }.start();
+        ConnectionGUITab.addConnection();
         connections.add(conn);
         return conn;
     }
