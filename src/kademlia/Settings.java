@@ -35,6 +35,7 @@ public class Settings {
         out.writeInt(garbageCollectionIntervalSec);
     }
     public void onChange() {
+        System.out.println("New settings: " + this);
         kademliaRef.heyYouShouldSaveSoon();
     }
     @Override
