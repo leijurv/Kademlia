@@ -10,6 +10,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,22 +38,31 @@ public class FileAssembly {
     }
     String search = "";
     public void assemble() {
+        HashSet<Long> uniqueh = new HashSet<>();
         for (int i = 0; i < hashes.length; i++) {
-            final int j = i;
+            uniqueh.add(hashes[i]);
+        }
+        if (uniqueh.size() != hashes.length) {
+            System.out.println("Of the " + hashes.length + " hashes, there were " + (hashes.length - uniqueh.size()) + " duplicates. Only need to get " + (uniqueh.size()) + " hashes");
+        }
+        for (long hash : uniqueh) {
             new Thread() {
                 @Override
                 public void run() {
-                    byte[] pos = kademliaRef.storedData.get(hashes[j]);
+                    byte[] pos = kademliaRef.storedData.get(hash);
                     if (pos != null) {
-                        System.out.println("Part " + j + " was stored locally");
-                        onPartCompleted(hashes[j], pos, false);
+                        onPartCompleted(hash, pos, false);
                     } else {
-                        search += hashes[j];
-                        search += "\n";
-                        new Lookup(FileAssembly.this, hashes[j], kademliaRef).execute();
+                        search += (hash + "\n");
+                        new Lookup(FileAssembly.this, hash, kademliaRef).execute();
                     }
                 }
             }.start();
+        }
+        try {
+            Thread.sleep(100);//there is probably a better way to wait for all the threads we just started to append to search
+        } catch (InterruptedException ex) {
+            Logger.getLogger(FileAssembly.class.getName()).log(Level.SEVERE, null, ex);
         }
         System.out.println("LOOKING FOR " + search);
     }
