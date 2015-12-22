@@ -179,9 +179,11 @@ public class DataStore {
                             console.log("Size before: " + currentRAMSize);
                             while (currentRAMSize > kademliaRef.settings.maxRAMSizeBytes) {
                                 StoredData sd = inRAM.remove(0);
-                                console.log("Removed " + sd.size + " bytes");
-                                sd.data = null;
-                                currentRAMSize -= sd.size;
+                                synchronized (sd.lock) {
+                                    console.log("Removed " + sd.size + " bytes");
+                                    sd.data = null;
+                                    currentRAMSize -= sd.size;
+                                }
                             }
                             console.log("Size after: " + currentRAMSize);
                             console.log("Running gc");
