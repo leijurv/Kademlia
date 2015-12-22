@@ -58,7 +58,7 @@ public class Bucket {
                 console.log("(diff host) Replacing " + nodes.get(id) + " with " + node);
             }
             nodes.put(id, node);
-            return false;
+            return !previous.sameHost(node);
         } else {
             if (nodeids.size() <= Kademlia.k) {
                 nodeids.add(id);

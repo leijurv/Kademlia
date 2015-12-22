@@ -329,6 +329,7 @@ public class Kademlia {
         }
         Bucket bucket = bucketFromNode(node);
         if (bucket.addOrUpdate(node)) {
+            shouldSave = true;
             if (Kademlia.verbose) {
                 console.log(myself + " Inserting " + node + " into " + bucket);
             }
@@ -340,6 +341,7 @@ public class Kademlia {
         }
         Bucket bucket = bucketFromNode(node);
         bucket.removeNode(node);
+        shouldSave = true;
     }
     public ArrayList<Node> findNClosest(int num, long search) {//less efficent, but works correctly
         /*ArrayList<Node> closest = new ArrayList<>();
@@ -388,7 +390,7 @@ public class Kademlia {
     private void runKademlia() throws IOException {
         createMainServer();
     }
-    public void createMainServer() throws IOException {
+    private void createMainServer() throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
             @Override
