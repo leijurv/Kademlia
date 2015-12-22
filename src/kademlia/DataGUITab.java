@@ -8,6 +8,10 @@ package kademlia;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -37,17 +41,19 @@ import javafx.util.Callback;
  * @author aidan
  */
 public class DataGUITab extends Tab {
+
     private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
     private static Kademlia kad;
     private static ProgressBar fileProgressBar;
     private static HashMap<Long, String> keyHashLookup;
+
     DataGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
-        
+
         kad = kademliaRef;
         this.setText("Data");
         this.setClosable(false);
-        
+
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -76,28 +82,36 @@ public class DataGUITab extends Tab {
             public ObservableValue<String> call(CellDataFeatures<KeyValueData, String> p) {
                 return p.getValue().getValueProperty();
             }
-         });
+        });
         valCol.setPrefWidth(500);
         valCol.setEditable(true);
         valCol.setSortable(false);
         valCol.setCellFactory(TextFieldTableCell.forTableColumn());
         valCol.setOnEditCommit(
-            new EventHandler<CellEditEvent<KeyValueData, String>>() {
-                @Override
-                public void handle(CellEditEvent<KeyValueData, String> t) {
-                    KeyValueData data = ((KeyValueData) t.getTableView().getItems().get(t.getTablePosition().getRow()));
-                    data.setValue(t.getNewValue());
-                    kad.put(data.getRawKey(), data.getRawValue());
+                new EventHandler<CellEditEvent<KeyValueData, String>>() {
+                    @Override
+                    public void handle(CellEditEvent<KeyValueData, String> t) {
+                        KeyValueData data = ((KeyValueData) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+                        data.setValue(t.getNewValue());
+                        kad.put(data.getRawKey(), data.getRawValue());
+                    }
                 }
-            }
         );
-
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        Runnable getBytesForLabel = () -> {
+            Platform.runLater(() -> {
+                for (int i = 0; i < keyValueDataList.size(); i++) {
+                    kad.get(keyValueDataList.get(i).getKey());
+                }
+            });
+        };
+        executor.scheduleAtFixedRate(getBytesForLabel, 0, kad.settings.updateIntervalSec, TimeUnit.SECONDS);
         grid.add(table, 0, 0, 10, 5);
-        
+
         keyHashLookup = new HashMap();
-        
+
         /* GET */
         //TextField
         TextField getKeyTextField = new TextField();
@@ -208,10 +222,11 @@ public class DataGUITab extends Tab {
         fileProgressBar.setDisable(true);
         fileProgressBar.setPrefWidth(980);
         grid.add(fileProgressBar, 1, 9, 8, 1);
-        
+
         //Tab
         this.setContent(grid);
     }
+
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
         for (int i = 0; i < keyValueDataList.size(); i++) {
             if (keyValueDataList.get(i).getRawKey() == rawKey) {
@@ -225,10 +240,12 @@ public class DataGUITab extends Tab {
             keyValueDataList.add(new KeyValueData(rawKey, rawValue));
         }
     }
+
     public static void alertForError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR, message);
         alert.show();
     }
+
     public static void updateProgressBar(float progress) {
         if (fileProgressBar.isDisabled()) {
             fileProgressBar.setDisable(false);

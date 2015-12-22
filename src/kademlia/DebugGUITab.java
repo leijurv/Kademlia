@@ -8,9 +8,11 @@ package kademlia;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
@@ -57,6 +59,7 @@ public class DebugGUITab extends Tab {
         if (console != null) {
             Platform.runLater(() -> {
                 console.setText(textHolder + "\n");
+                console.setScrollTop(Double.MAX_VALUE);
             });
         }
     }
