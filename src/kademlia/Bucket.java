@@ -33,7 +33,7 @@ public class Bucket {
         if (nodeids.contains(id)) {
             Node previous = nodes.get(id);
             if (!previous.sameHost(node)) {
-                System.out.println("(diff host) Replacing " + nodes.get(id) + " with " + node);
+                console.log("(diff host) Replacing " + nodes.get(id) + " with " + node);
             }
             nodes.put(id, node);
             return false;
@@ -47,7 +47,7 @@ public class Bucket {
             nodeids.sort((Long o1, Long o2) -> new Long(nodes.get(o1).lastSuccessfulDataTransfer).compareTo(nodes.get(o2).lastSuccessfulDataTransfer));
             for (long nodeid : nodeids) {
                 if (Kademlia.verbose) {
-                    System.out.println("Node id: " + nodeid + ", nodedata: " + nodes.get(nodeid) + ", lastsuc: " + nodes.get(nodeid).lastSuccessfulDataTransfer);
+                    console.log("Node id: " + nodeid + ", nodedata: " + nodes.get(nodeid) + ", lastsuc: " + nodes.get(nodeid).lastSuccessfulDataTransfer);
                 }
             }
             replacementCache.add(node);
@@ -71,7 +71,7 @@ public class Bucket {
                     Thread.sleep(1000);
                     if (!conn.isStillRunning || conn.isRequestStillPending(rp)) {
                         if (Kademlia.verbose) {
-                            System.out.println("removing " + n + " from bucket because its bad");
+                            console.log("removing " + n + " from bucket because its bad");
                         }
                         removeNode(n);
                     }
@@ -90,7 +90,7 @@ public class Bucket {
             throw new IllegalArgumentException("I DIDNT EVEN HAVE YOU TO BEGIN WITH");
         }
         if (Kademlia.verbose) {
-            System.out.println("Doing remove for " + n);
+            console.log("Doing remove for " + n);
         }
         nodeids.remove(n.nodeid);
         nodes.remove(n.nodeid);

@@ -69,18 +69,18 @@ public class Kademlia {
                         kad.handleSocket(new Socket(host, port));
                         break;
                     case "list":
-                        System.out.println(kad.connections);
-                        System.out.println(kad.storedData);
+                        console.log(kad.connections);
+                        console.log(kad.storedData);
                         break;
                     case "get":
                     case "getr":
                         long d = com.equals("get") ? Lookup.hash(command.getBytes()) : Long.parseLong(command);
-                        System.out.println("Getting " + d);
+                        console.log("Getting " + d);
                         byte[] cached = kad.storedData.get(d);
                         if (cached != null) {
-                            System.out.println("stored locally");
+                            console.log("stored locally");
                             DataGUITab.incomingKeyValueData(d, cached);
-                            System.out.println(new String(cached));
+                            console.log(new String(cached));
                             break;
                         }
                         new Lookup(d, kad, true).execute();
@@ -101,28 +101,28 @@ public class Kademlia {
                         kad.putfile(new File(filepath), name);
                         break;
                     case "help":
-                        System.out.println("HELP");
-                        System.out.println("*****");
-                        System.out.println("How to read:");
-                        System.out.println("() - optional arguments");
-                        System.out.println("[] - require arguments");
-                        System.out.println("*****");
-                        System.out.println("CONNECT (hostname) [port] - connect to a node");
-                        System.out.println("LIST - lists all connected nodes");
-                        System.out.println("GET [key] - gets value based on key");
-                        System.out.println("GETR [hash of key] - gets value based on hash of key");
-                        System.out.println("GETFILE [key] [path] - gets a file on the network based on key and stores it at the provided path");
-                        System.out.println("PUT [key] [value] - stores a value on the network");
-                        System.out.println("PUTFILE [key] [path] - stores a file on the network");
-                        System.out.println("HELP - gets help");
-                        System.out.println("EXIT - exits program");
+                        console.log("HELP");
+                        console.log("*****");
+                        console.log("How to read:");
+                        console.log("() - optional arguments");
+                        console.log("[] - require arguments");
+                        console.log("*****");
+                        console.log("CONNECT (hostname) [port] - connect to a node");
+                        console.log("LIST - lists all connected nodes");
+                        console.log("GET [key] - gets value based on key");
+                        console.log("GETR [hash of key] - gets value based on hash of key");
+                        console.log("GETFILE [key] [path] - gets a file on the network based on key and stores it at the provided path");
+                        console.log("PUT [key] [value] - stores a value on the network");
+                        console.log("PUTFILE [key] [path] - stores a file on the network");
+                        console.log("HELP - gets help");
+                        console.log("EXIT - exits program");
                         break;
                     case "exit":
                         System.exit(0);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                System.out.println("but we still good homie. keep on hitting me up with them requests");
+                console.log("but we still good homie. keep on hitting me up with them requests");
             }
         }
     }
@@ -133,33 +133,33 @@ public class Kademlia {
         Connection k2tok3 = k2.establishConnection(k3.myself);
         Connection k1tok2 = k1.establishConnection(k2.myself);
         Thread.sleep(500);
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
         k2tok3.sendRequest(new RequestStore(58009, "yolo swag 420 noscope".getBytes(), System.currentTimeMillis()));
         Thread.sleep(500);
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
         new Lookup(58009, k1, true).execute();
         Thread.sleep(1000);
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
-        System.out.println();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
+        console.log();
         new Lookup(58008, k1, true).execute();
         Thread.sleep(1000);
         System.exit(0);
@@ -167,7 +167,7 @@ public class Kademlia {
         //k2tok3.sendRequest(new RequestStore(123123312, "kuoea20".getBytes()));
         //k1tok2.sendRequest(new RequestFindNode(55543543));
         //k1tok2.sendRequest(new RequestStore(5021, "kush 420".getBytes()));
-        //System.out.println("main is done");
+        //console.log("main is done");
     }
     final int port;
     final Node myself;
@@ -177,7 +177,7 @@ public class Kademlia {
     public Kademlia(int port, long nodeid) throws IOException {
         this.port = port;
         String ip = whatIsMyIp();
-        System.out.println("I am " + ip);
+        console.log("I am " + ip);
         this.myself = new Node(nodeid, ip, port);
         this.buckets = new Bucket[64];
         for (int i = 0; i < 64; i++) {
@@ -191,22 +191,22 @@ public class Kademlia {
         getfile(keyF, storPath.getAbsolutePath());
     }
     public void getfile(String keyF, String storPath) throws IOException {
-        System.out.println("Getting " + keyF + " and storing in " + storPath);
+        console.log("Getting " + keyF + " and storing in " + storPath);
         byte[] caced = storedData.get(Lookup.hash(keyF.getBytes()));
         if (caced != null) {
-            System.out.println("metadata stored locally");
+            console.log("metadata stored locally");
             new FileAssembly(caced, this, storPath).assemble();
             return;
         }
         new Lookup(keyF, this, true, true, storPath).execute();
     }
     public void putfile(File file, String name) throws IOException, InterruptedException {
-        System.out.println("Putting " + file + " under name " + name);
+        console.log("Putting " + file + " under name " + name);
         try (FileInputStream in = new FileInputStream(file)) {
             int size = in.available();
             int partSize = 524288;
             int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
-            System.out.println("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
+            console.log("Dividing file of size " + size + " into " + partitions + " partitions of size " + partSize);
             ByteArrayOutputStream theData = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(theData);
             out.writeInt(size);
@@ -226,7 +226,7 @@ public class Kademlia {
                 }
                 long hash = Lookup.hash(y);
                 out.writeLong(hash);
-                System.out.println("psize: " + psize + ", i: " + i + ", hash: " + hash);
+                console.log("psize: " + psize + ", i: " + i + ", hash: " + hash);
                 new Thread() {
                     @Override
                     public void run() {
@@ -246,12 +246,12 @@ public class Kademlia {
     }
     public void get(String key) {
         long d = Lookup.hash(key.getBytes());
-        System.out.println("Getting " + d);
+        console.log("Getting " + d);
         byte[] cached = storedData.get(d);
         if (cached != null) {
-            System.out.println("stored locally");
+            console.log("stored locally");
             DataGUITab.incomingKeyValueData(d, cached);
-            System.out.println(new String(cached));
+            console.log(new String(cached));
             return;
         }
         new Lookup(d, this, true).execute();
@@ -273,14 +273,14 @@ public class Kademlia {
     public void addOrUpdate(Node node) {
         if (node.nodeid == myself.nodeid) {
             if (Kademlia.verbose) {
-                System.out.println(myself + " trying to add/update myself, returning");
+                console.log(myself + " trying to add/update myself, returning");
             }
             return;
         }
         Bucket bucket = bucketFromNode(node);
         if (bucket.addOrUpdate(node)) {
             if (Kademlia.verbose) {
-                System.out.println(myself + " Inserting " + node + " into " + bucket);
+                console.log(myself + " Inserting " + node + " into " + bucket);
             }
         }
     }
@@ -343,7 +343,7 @@ public class Kademlia {
             @Override
             public void run() {
                 try {
-                    System.out.println(myself + " listening " + server);
+                    console.log(myself + " listening " + server);
                     while (true) {
                         Socket socket = server.accept();
                         new Thread() {
@@ -377,7 +377,7 @@ public class Kademlia {
             return already;
         }
         if (Kademlia.verbose) {
-            System.out.println("couldn't find " + n + " in " + connections + ", so making new");
+            console.log("couldn't find " + n + " in " + connections + ", so making new");
         }
         return establishConnection(n);
     }
@@ -385,7 +385,7 @@ public class Kademlia {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
         if (Kademlia.verbose) {
-            System.out.println(myself + " Received node data " + other + " from socket " + socket);
+            console.log(myself + " Received node data " + other + " from socket " + socket);
         }
         addOrUpdate(other);
         Connection conn = new Connection(other, socket, this);
@@ -396,7 +396,7 @@ public class Kademlia {
                     conn.doListen();
                 } catch (IOException ex) {
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
-                    System.out.println("Error with connection " + conn + ", removing from list");
+                    console.log("Error with connection " + conn + ", removing from list");
                     ConnectionGUITab.stoppedConnection(conn.node.nodeid);
                     connections.remove(conn);
                     conn.isStillRunning = false;
@@ -413,7 +413,7 @@ public class Kademlia {
     private Connection establishConnection(Node node) throws IOException {
         try {
             if (Kademlia.verbose) {
-                System.out.println(myself + " is proactively establishing connection to " + node);
+                console.log(myself + " is proactively establishing connection to " + node);
             }
             if (node.equals(myself)) {
                 throw new IllegalArgumentException("can't make a connection to yourself");

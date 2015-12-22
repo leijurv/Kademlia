@@ -34,11 +34,11 @@ public class RequestFindNode extends Request {
     @Override
     public void execute(Kademlia kademliaRef, DataOutputStream out) throws IOException {
         if (Kademlia.verbose) {
-            System.out.println(kademliaRef.myself + " Looking for node " + nodeid);
+            console.log(kademliaRef.myself + " Looking for node " + nodeid);
         }
         ArrayList<Node> nodes = kademliaRef.findNClosest(Kademlia.k, nodeid);
         if (Kademlia.verbose) {
-            System.out.println(kademliaRef.myself + " Found " + nodes);
+            console.log(kademliaRef.myself + " Found " + nodes);
         }
         out.writeInt(nodes.size());
         for (Node n : nodes) {
@@ -53,7 +53,7 @@ public class RequestFindNode extends Request {
             nodes.add(new Node(in));
         }
         if (Kademlia.verbose) {
-            System.out.println(conn.kademliaRef.myself + " Got find node resp for search query " + nodeid + ": " + nodes);
+            console.log(conn.kademliaRef.myself + " Got find node resp for search query " + nodeid + ": " + nodes);
         }
         for (Node node : nodes) {
             conn.kademliaRef.addOrUpdate(node);

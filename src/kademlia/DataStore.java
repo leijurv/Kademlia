@@ -144,7 +144,7 @@ public class DataStore {
                         while (true) {
                             Thread.sleep(60000 + rand.nextInt(10000));
                             boolean wasNot = data == null;
-                            System.out.println("Refreshing " + key + " " + wasNot);
+                            console.log("Refreshing " + key + " " + wasNot);
                             kademliaRef.put(key, getData0());
                             if (wasNot) {
                                 data = null;//#ConverveMemory
@@ -167,20 +167,20 @@ public class DataStore {
             public void run() {
                 try {
                     while (true) {
-                        System.out.println("Clearing ram");
+                        console.log("Clearing ram");
                         synchronized (lock) {
                             ArrayList<StoredData> inRAM = storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).collect(Collectors.toCollection(ArrayList::new));
                             long currentRAMSize = inRAM.stream().mapToLong(x -> x.size).sum();
                             inRAM.sort((StoredData o1, StoredData o2) -> new Long(o1.lastRetreived).compareTo(o2.lastRetreived));
-                            System.out.println("Size before: " + currentRAMSize);
+                            console.log("Size before: " + currentRAMSize);
                             while (currentRAMSize > maxRamSize) {
                                 StoredData sd = inRAM.remove(0);
-                                System.out.println("Removed " + sd.size + " bytes");
+                                console.log("Removed " + sd.size + " bytes");
                                 sd.data = null;
                                 currentRAMSize -= sd.size;
                             }
-                            System.out.println("Size after: " + currentRAMSize);
-                            System.out.println("Running gc");
+                            console.log("Size after: " + currentRAMSize);
+                            console.log("Running gc");
                             System.gc();
                         }
                         Thread.sleep(20000);
@@ -219,16 +219,16 @@ public class DataStore {
     }
     public void put(long key, byte[] value, long lastModified) {
         long hash = Lookup.hash(value);
-        System.out.println("Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified);
+        console.log("Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified);
         synchronized (lock) {
             if (hasKey(key)) {
                 StoredData data = storedData.get(key);
                 if (data.lastModified > lastModified) {
-                    System.out.println("Not overwriting because new last modified " + lastModified + " is before current last modified " + data.lastModified);
+                    console.log("Not overwriting because new last modified " + lastModified + " is before current last modified " + data.lastModified);
                     return;
                 }
                 if (data.hash == hash) {
-                    System.out.println("Not overwriting because hash is the same " + hash);
+                    console.log("Not overwriting because hash is the same " + hash);
                     return;
                 }
                 shouldSave = true;

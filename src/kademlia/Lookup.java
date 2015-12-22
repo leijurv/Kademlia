@@ -92,7 +92,7 @@ public class Lookup {
     public void execute() {
         if (closest == null) {
             if (Kademlia.verbose) {
-                System.out.println("Starting lookup for " + key + " for the first time");
+                console.log("Starting lookup for " + key + " for the first time");
             }
             closest = kademliaRef.findNClosest(Kademlia.k, key);
         }
@@ -100,45 +100,45 @@ public class Lookup {
         while (closest.size() > Kademlia.k) {
             Node removed = closest.remove(closest.size() - 1);
             if (Kademlia.verbose) {
-                System.out.println("Removed from consideration " + removed + " for key " + key);
+                console.log("Removed from consideration " + removed + " for key " + key);
             }
         }
         for (Node n : closest) {
             if (Kademlia.verbose) {
-                System.out.println("lookup is considering: " + n + " " + (n.nodeid ^ key));
+                console.log("lookup is considering: " + n + " " + (n.nodeid ^ key));
             }
         }
         if (Kademlia.verbose) {
-            System.out.println(alreadyAsked);
+            console.log(alreadyAsked);
         }
         Node node = popFirstNonUsed();
         if (node == null) {
             if (Kademlia.verbose) {
-                System.out.println("Lookup for " + key + " has failed");
+                console.log("Lookup for " + key + " has failed");
             }
             if (!isKeyLookup) {
                 if (Kademlia.verbose) {
-                    System.out.println("The closest to key " + key + " was " + closest.get(0));
+                    console.log("The closest to key " + key + " was " + closest.get(0));
                 }
                 if (contentsToPut != null) {
                     for (Node storageNode : closest) {
                         if (kademliaRef.myself.equals(storageNode)) {
                             kademliaRef.storedData.put(key, contentsToPut, lastMod);
-                            System.out.println("done, stored locally");
+                            console.log("done, stored locally");
                         } else {
                             try {
                                 kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod));
-                                System.out.println("done, stored on " + storageNode);
+                                console.log("done, stored on " + storageNode);
                             } catch (IOException ex) {
                                 Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
                             }
                         }
                     }
-                    System.out.println("done, stored on all " + closest.size());
+                    console.log("done, stored on all " + closest.size());
                     if (kademliaRef.max != 0) {
                         kademliaRef.progress++;
                         if (kademliaRef.progress == kademliaRef.max) {
-                            System.out.println("All done storing");
+                            console.log("All done storing");
                             kademliaRef.max = 0;
                             DataGUITab.updateProgressBar(1);
                         } else {
@@ -158,7 +158,7 @@ public class Lookup {
                     }
                 }
             } else {
-                System.out.println("failed");
+                console.log("failed");
             }
             return;
         }
@@ -192,7 +192,7 @@ public class Lookup {
                 long distance = newNode.nodeid ^ key;
                 boolean shouldAdd = distance <= worstDistance;
                 if (Kademlia.verbose) {
-                    System.out.println("Lookup for " + key + " has new node " + newNode + " and " + shouldAdd);
+                    console.log("Lookup for " + key + " has new node " + newNode + " and " + shouldAdd);
                 }
                 if (shouldAdd) {
                     closest.add(newNode);
@@ -210,13 +210,13 @@ public class Lookup {
         if (!didDiscoverNewNode) {
             if (!isLookupFinished()) {//dont talk if already found value
                 if (Kademlia.verbose) {
-                    System.out.println("Lookup for " + key + " didn't get anything new");
+                    console.log("Lookup for " + key + " didn't get anything new");
                 }
             }
         }
         if (!isLookupFinished()) {
             if (Kademlia.verbose) {
-                System.out.println("Lookup for " + key + " is recursively executing");
+                console.log("Lookup for " + key + " is recursively executing");
             }
             execute();
         }
@@ -227,7 +227,7 @@ public class Lookup {
     }
     public void onCompletion() {
         if (needsToAssemble) {
-            System.out.println("Received metadata. Starting assembly...");
+            console.log("Received metadata. Starting assembly...");
             new Thread() {
                 @Override
                 public void run() {
@@ -245,6 +245,6 @@ public class Lookup {
             return;
         }
         DataGUITab.incomingKeyValueData(key, value);
-        System.out.println((isKeyLookup ? new String(value) : finalResult));
+        console.log((isKeyLookup ? new String(value) : finalResult));
     }
 }

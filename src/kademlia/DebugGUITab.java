@@ -5,20 +5,12 @@
  */
 package kademlia;
 
-import java.util.Set;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextFormatter;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 /**
@@ -26,6 +18,8 @@ import javafx.stage.Stage;
  * @author aidan
  */
 public class DebugGUITab extends Tab {
+    private static TextArea console;
+    private static String textHolder = ""; 
     DebugGUITab(Stage primaryStage) {
         super();
         
@@ -50,14 +44,21 @@ public class DebugGUITab extends Tab {
         }
         /* Stored */
         //TextField
-        TextArea console = new TextArea();
+        console = new TextArea();
         console.setEditable(false);
         //console.setStyle(".text-area .content {-fx-background-color: black}; ");//-fx-text-fill: yellow;
-        console.setText("logs");
+        console.setText(textHolder);
         
-        grid.add(console, 0, 0, 10, 3);
+        grid.add(console, 0, 0, 10, 5);
         
         //Tab
         this.setContent(grid);
+    }
+    public static void addLog(String message) {
+        if (console == null) {
+            textHolder += message + "\n";
+            return;
+        }
+        console.appendText(message + "\n");
     }
 }

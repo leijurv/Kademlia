@@ -37,17 +37,17 @@ public class RequestFindValue extends Request {
         out.writeBoolean(value != null);
         if (value != null) {
             if (Kademlia.verbose) {
-                System.out.println(kademliaRef.myself + " Sending result to search for key " + key);
+                console.log(kademliaRef.myself + " Sending result to search for key " + key);
             }
             out.writeInt(value.length);
             out.write(value);
         }
         if (Kademlia.verbose) {
-            System.out.println(kademliaRef.myself + " Looking for nodes near key " + key);
+            console.log(kademliaRef.myself + " Looking for nodes near key " + key);
         }
         ArrayList<Node> nodes = kademliaRef.findNClosest(Kademlia.k, key);
         if (Kademlia.verbose) {
-            System.out.println(kademliaRef.myself + " Nodes near " + key + " are " + nodes);
+            console.log(kademliaRef.myself + " Nodes near " + key + " are " + nodes);
         }
         out.writeInt(nodes.size());
         for (Node n : nodes) {
@@ -70,7 +70,7 @@ public class RequestFindValue extends Request {
         }
         if (!hasValue) {//be quiet if just found result
             if (Kademlia.verbose) {
-                System.out.println(conn.kademliaRef.myself + " Got find value resp for search query " + key + ": " + nodes);
+                console.log(conn.kademliaRef.myself + " Got find value resp for search query " + key + ": " + nodes);
             }
         }
         for (Node node : nodes) {

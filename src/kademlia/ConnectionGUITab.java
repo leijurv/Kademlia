@@ -65,23 +65,6 @@ public class ConnectionGUITab extends Tab {
         }
         connectionsCircle = new HashMap<>();
         
-        /* Show Connected Nodes*/
-        //Canvas
-        /*Canvas nodesCanvas = new Canvas(300, 300);
-        GraphicsContext ctx = nodesCanvas.getGraphicsContext2D();
-        ctx.setFill(Color.BLUE);
-        //ctx.fillRect(0,0,nodesCanvas.getWidth(),nodesCanvas.getHeight());
-        ctx.fillOval(nodesCanvas.getWidth()/2, nodesCanvas.getHeight()/2, 30, 30);
-        nodesCanvas.addEventHandler(MouseEvent.MOUSE_CLICKED, 
-        new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent t) {
-                if (Math.sqrt((t.getX() - nodesCanvas.getWidth()/2)*(t.getX() - nodesCanvas.getWidth()/2)+(t.getY() - nodesCanvas.getHeight()/2)*(t.getY() - nodesCanvas.getHeight()/2))<30) {
-                    System.out.println("self selected");
-                }
-            }
-        });
-        grid.add(nodesCanvas, 0, 0, 3, 3);*/
         canvas = new Pane();
         selfCircle = new Circle(15, Color.BLUE);
         selfCircle.relocate(150, 150);

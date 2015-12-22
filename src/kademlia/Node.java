@@ -59,7 +59,7 @@ public class Node {
             return false;
         }
         if (!sameHost(other)) {
-            System.out.println(this + " and " + obj + " are being incorrectly compared as being the same");
+            console.log(this + " and " + obj + " are being incorrectly compared as being the same");
         }
         return true;
     }
