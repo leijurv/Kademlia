@@ -54,7 +54,7 @@ public class DebugGUITab extends Tab {
         textHolder += message + "\n";
         if (console != null) {
             Platform.runLater(() -> {
-                console.setText(textHolder);
+                console.setText(textHolder + "\n");
             });
         }
     }
