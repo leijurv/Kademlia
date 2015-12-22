@@ -237,6 +237,7 @@ public class DataStore {
                     console.log("Not overwriting because hash is the same " + hash);
                     return;
                 }
+                console.log("OVERWRITING " + data.key);
                 shouldSave = true;
                 data.update(value, lastModified);
                 return;
