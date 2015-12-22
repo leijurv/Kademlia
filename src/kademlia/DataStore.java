@@ -171,6 +171,7 @@ public class DataStore {
             public void run() {
                 try {
                     while (true) {
+                        Thread.sleep(kademliaRef.settings.garbageCollectionIntervalSec * 1000);
                         console.log("Clearing ram");
                         synchronized (lock) {
                             ArrayList<StoredData> inRAM = storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).collect(Collectors.toCollection(ArrayList::new));
@@ -189,7 +190,6 @@ public class DataStore {
                             console.log("Running gc");
                             System.gc();
                         }
-                        Thread.sleep(kademliaRef.settings.garbageCollectionIntervalSec * 1000);
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
