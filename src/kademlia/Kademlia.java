@@ -178,7 +178,8 @@ public class Kademlia {
     final ArrayList<Connection> connections;
     final DataStore storedData;
     final String dataStorageDir;
-    volatile boolean shouldSave = true;
+    final Settings settings;
+    private volatile boolean shouldSave = true;
     public Kademlia(int port) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
@@ -195,17 +196,22 @@ public class Kademlia {
                 for (int i = 0; i < 64; i++) {
                     buckets[i] = new Bucket(i, this, in);
                 }
+                settings = new Settings(in, this);
             }
         } else {
             nodeid = Math.abs(new Random().nextLong());
             for (int i = 0; i < 64; i++) {
                 buckets[i] = new Bucket(i, this);
             }
+            settings = new Settings(this);
         }
         this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
         runKademlia();
         startSaveThread();
+    }
+    public void heyYouShouldSaveSoon() {
+        shouldSave = true;
     }
     private void startSaveThread() {
         new Thread() {
@@ -233,6 +239,7 @@ public class Kademlia {
             for (int i = 0; i < 64; i++) {
                 buckets[i].write(out);
             }
+            settings.write(out);
         }
     }
     private File getSaveFile() {
