@@ -187,9 +187,10 @@ public class DataStore {
                                 }
                             }
                             console.log("Size after: " + currentRAMSize);
-                            console.log("Running gc");
-                            System.gc();
                         }
+                        console.log("Done clearing. Running gc...");
+                        System.gc();
+                        console.log("Done running gc.");
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
@@ -207,6 +208,17 @@ public class DataStore {
     }
     public boolean hasKey(long key) {
         return storedData.get(key) != null;
+    }
+    public void flushRAM() {
+        synchronized (lock) {
+            for (long l : storedData.keySet()) {
+                StoredData sd = storedData.get(l);
+                synchronized (sd.lock) {
+                    sd.data = null;
+                }
+            }
+        }
+        System.gc();
     }
     public long bytesStoredInRAM() {
         synchronized (lock) {
