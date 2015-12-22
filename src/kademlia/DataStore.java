@@ -165,7 +165,6 @@ public class DataStore {
     final HashMap<Long, StoredData> storedData = new HashMap<>();
     final Object lock = new Object();
     volatile boolean shouldSave = true;
-    final long maxRamSize = 10 * 1048576;
     private void startMemoryConvervationThread() {
         new Thread() {
             @Override
@@ -178,7 +177,7 @@ public class DataStore {
                             long currentRAMSize = inRAM.stream().mapToLong(x -> x.size).sum();
                             inRAM.sort((StoredData o1, StoredData o2) -> new Long(o1.lastRetreived).compareTo(o2.lastRetreived));
                             console.log("Size before: " + currentRAMSize);
-                            while (currentRAMSize > maxRamSize) {
+                            while (currentRAMSize > kademliaRef.settings.maxRAMSizeBytes) {
                                 StoredData sd = inRAM.remove(0);
                                 console.log("Removed " + sd.size + " bytes");
                                 sd.data = null;
@@ -188,7 +187,7 @@ public class DataStore {
                             console.log("Running gc");
                             System.gc();
                         }
-                        Thread.sleep(20000);
+                        Thread.sleep(kademliaRef.settings.garbageCollectionIntervalSec * 1000);
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
