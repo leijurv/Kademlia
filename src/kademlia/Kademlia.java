@@ -226,6 +226,7 @@ public class Kademlia {
         }.start();
     }
     private void writeToSave() throws IOException {
+        console.log("Writing to save file");
         try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
             DataOutputStream out = new DataOutputStream(fileOut);
             out.writeLong(myself.nodeid);
