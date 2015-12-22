@@ -55,10 +55,11 @@ public class SettingsGUITab extends Tab {
         maxRamLabel.setAlignment(Pos.CENTER);
         Spinner maxRamNumberSpinner = new Spinner();
         maxRamNumberSpinner.setEditable(false);
-        maxRamNumberSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(10, 1000));
+        int units = (int) Math.floor(Math.log(kad.settings.maxRAMSizeBytes)/Math.log(1024));
+        maxRamNumberSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(10, 1000, (int) (kad.settings.maxRAMSizeBytes/Math.pow(1024, units))));
         ChoiceBox maxRamUnitCB = new ChoiceBox();
         maxRamUnitCB.getItems().addAll("Bytes", "KB", "MB", "GB");
-        maxRamUnitCB.getSelectionModel().selectFirst();
+        maxRamUnitCB.getSelectionModel().select(units);
         grid.add(maxRamLabel, 0, 0);
         grid.add(maxRamNumberSpinner, 1, 0);
         grid.add(maxRamUnitCB, 2, 0);
@@ -67,37 +68,56 @@ public class SettingsGUITab extends Tab {
         gcIntervalLabel.setAlignment(Pos.CENTER);
         Spinner gcIntervalSpinner = new Spinner();
         gcIntervalSpinner.setEditable(false);
-        gcIntervalSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(5, 120));
+        gcIntervalSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(5, 120, kad.settings.garbageCollectionIntervalSec));
         Label gcIntervalSecondsLabel = new Label("seconds");
         grid.add(gcIntervalLabel, 4, 0, 2, 1);
         grid.add(gcIntervalSpinner, 6, 0);
         grid.add(gcIntervalSecondsLabel, 7, 0);
+        /* Ping Timeout */
+        Label pingTimeoutLabel = new Label("Ping Timeout:");
+        pingTimeoutLabel.setAlignment(Pos.CENTER);
+        Spinner pingTimeoutSpinner = new Spinner();
+        pingTimeoutSpinner.setEditable(false);
+        pingTimeoutSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, kad.settings.pingTimeoutSec));
+        Label pingTimeoutSecondsLabel = new Label("seconds");
+        grid.add(pingTimeoutLabel, 0, 1);
+        grid.add(pingTimeoutSpinner, 1, 1);
+        grid.add(pingTimeoutSecondsLabel, 2, 1);
+        /* Ping Interval */
+        Label pingIntervalLabel = new Label("Ping Interval:");
+        pingIntervalLabel.setAlignment(Pos.CENTER);
+        Spinner pingIntervalSpinner = new Spinner();
+        pingIntervalSpinner.setEditable(false);
+        pingIntervalSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(10, 300, kad.settings.pingIntervalSec));
+        Label pingIntervalSecondsLabel = new Label("seconds");
+        grid.add(pingIntervalLabel, 4, 1);
+        grid.add(pingIntervalSpinner, 5, 1);
+        grid.add(pingIntervalSecondsLabel, 6, 1);
         
         /* Save Settings */
         Button saveBtn = new Button();
         saveBtn.setText("Save Settings");
         saveBtn.setDefaultButton(true);
-        saveBtn.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                kad.settings.garbageCollectionIntervalSec = (int) gcIntervalSpinner.getValue();
-                int maxRamMultiple = 1;
-                switch (maxRamUnitCB.getValue().toString()) {
-                    case "Bytes":
-                        break;
-                    case "KB":
-                        maxRamMultiple = 1024;
-                        break;
-                    case "MB":
-                        maxRamMultiple = 1024 * 1024;
-                        break;
-                    case "GB":
-                        maxRamMultiple = 1024 * 1024 * 1024;
-                        break;
-                }
-                kad.settings.maxRAMSizeBytes = (int) maxRamNumberSpinner.getValue() * maxRamMultiple;
-                kad.settings.onChange();
+        saveBtn.setOnAction((ActionEvent event) -> {
+            kad.settings.garbageCollectionIntervalSec = (int) gcIntervalSpinner.getValue();
+            int maxRamMultiple = 1;
+            switch (maxRamUnitCB.getValue().toString()) {
+                case "Bytes":
+                    break;
+                case "KB":
+                    maxRamMultiple = 1024;
+                    break;
+                case "MB":
+                    maxRamMultiple = 1024 * 1024;
+                    break;
+                case "GB":
+                    maxRamMultiple = 1024 * 1024 * 1024;
+                    break;
             }
+            kad.settings.maxRAMSizeBytes = (int) maxRamNumberSpinner.getValue() * maxRamMultiple;
+            kad.settings.pingTimeoutSec = (int) pingTimeoutSpinner.getValue();
+            kad.settings.pingIntervalSec = (int) pingIntervalSpinner.getValue();
+            kad.settings.onChange();
         });
         grid.add(saveBtn, 1, 9, 2, 1);
         

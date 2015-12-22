@@ -6,6 +6,8 @@
 package kademlia;
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
