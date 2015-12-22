@@ -43,7 +43,7 @@ public class Kademlia {
         if (args.length > 1 && args[1].equals("-v")) {
             verbose = true;
         }
-        int myPort = args.length < 1 ? 7705 : Integer.parseInt(args[0]);
+        int myPort = (args.length < 1 || args[0].equals("-v")) ? 7705 : Integer.parseInt(args[0]);
         Kademlia kad = new Kademlia(myPort);
         new Thread() {
             @Override
