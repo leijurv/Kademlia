@@ -183,7 +183,6 @@ public class Kademlia {
     public Kademlia(int port) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
-        storedData = new DataStore(this);
         String ip = whatIsMyIp();
         long nodeid;
         console.log("I am " + ip);
@@ -207,6 +206,7 @@ public class Kademlia {
         }
         this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
+        storedData = new DataStore(this);
         runKademlia();
         startSaveThread();
     }
