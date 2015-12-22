@@ -45,7 +45,7 @@ public class ConnectionGUITab extends Tab {
         this.primaryStage = primaryStage;
         
         kad = kademliaRef;
-        this.setText("Connection");
+        this.setText("Connections");
         this.setClosable(false);
         
         GridPane grid = new GridPane();
