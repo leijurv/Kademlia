@@ -22,12 +22,14 @@ public class Settings {
     public volatile int garbageCollectionIntervalSec;
     public volatile int pingTimeoutSec;
     public volatile int pingIntervalSec;
+    public volatile int updateIntervalSec;
     public Settings(Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
         this.maxRAMSizeBytes = 10 * 1048576;
         this.garbageCollectionIntervalSec = 20;
         this.pingTimeoutSec = 20;
         this.pingIntervalSec = 60;
+        this.updateIntervalSec = 60;
     }
     public Settings(DataInputStream in, Kademlia kademliaRef) throws IOException {
         this.kademliaRef = kademliaRef;
@@ -35,12 +37,14 @@ public class Settings {
         this.garbageCollectionIntervalSec = in.readInt();
         this.pingTimeoutSec = in.readInt();
         this.pingIntervalSec = in.readInt();
+        this.updateIntervalSec = in.readInt();
     }
     public void write(DataOutputStream out) throws IOException {
         out.writeLong(maxRAMSizeBytes);
         out.writeInt(garbageCollectionIntervalSec);
         out.writeInt(pingTimeoutSec);
         out.writeInt(pingIntervalSec);
+        out.writeInt(updateIntervalSec);
     }
     public void onChange() {
         System.out.println("New settings: " + this);
