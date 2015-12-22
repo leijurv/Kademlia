@@ -43,7 +43,7 @@ public class FileAssembly {
             uniqueh.add(hashes[i]);
         }
         if (uniqueh.size() != hashes.length) {
-            System.out.println("Of the " + hashes.length + " hashes, there were " + (hashes.length - uniqueh.size()) + " duplicates. Only need to get " + (uniqueh.size()) + " hashes");
+            console.log("Of the " + hashes.length + " hashes, there were " + (hashes.length - uniqueh.size()) + " duplicates. Only need to get " + (uniqueh.size()) + " hashes");
         }
         for (long hash : uniqueh) {
             new Thread() {
@@ -64,7 +64,7 @@ public class FileAssembly {
         } catch (InterruptedException ex) {
             Logger.getLogger(FileAssembly.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("LOOKING FOR " + search);
+        console.log("LOOKING FOR " + search);
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
         onPartCompleted1(key, contents, t);
@@ -75,11 +75,11 @@ public class FileAssembly {
             }
         }
         DataGUITab.updateProgressBar(((float) (hashes.length - numUncompleted)) / ((float) (hashes.length)));
-        System.out.println(numUncompleted + " parts left");
+        console.log(numUncompleted + " parts left");
         if (numUncompleted != 0) {
             return;
         }
-        System.out.println("done getting the file");
+        console.log("done getting the file");
         try (FileOutputStream out = new FileOutputStream(new File(storageLocation))) {
             for (int i = 0; i < hashes.length; i++) {
                 out.write(parts[i]);
@@ -94,7 +94,7 @@ public class FileAssembly {
         for (int i = 0; i < hashes.length; i++) {
             if (hashes[i] == key) {
                 if (t) {
-                    System.out.println("Received part " + i + ", with hash " + key);
+                    console.log("Received part " + i + ", with hash " + key);
                 }
                 parts[i] = contents;
                 encounters++;
@@ -105,7 +105,7 @@ public class FileAssembly {
                 throw new IllegalArgumentException("shrek");
             }
             if (encounters > 1) {
-                System.out.println("got " + key + " " + encounters + " times. this means that the file has the exact same chunk repeated " + encounters + " times");
+                console.log("got " + key + " " + encounters + " times. this means that the file has the exact same chunk repeated " + encounters + " times");
             }
         }
     }

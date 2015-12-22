@@ -7,6 +7,7 @@ package kademlia;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -17,9 +18,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
@@ -34,6 +37,7 @@ public class DataGUITab extends Tab {
     private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
     private static Kademlia kad;
     private static ProgressBar fileProgressBar;
+    private static HashMap<Long, String> keyHashLookup;
     DataGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
         
@@ -58,6 +62,7 @@ public class DataGUITab extends Tab {
         }
         //Table View
         TableView<KeyValueData> table = new TableView<>();
+        table.setEditable(true);
         TableColumn keyCol = new TableColumn("Key");
         keyCol.setCellValueFactory(new PropertyValueFactory<>("key"));
         keyCol.setPrefWidth(100);
@@ -68,26 +73,40 @@ public class DataGUITab extends Tab {
         valCol.setPrefWidth(500);
         valCol.setEditable(true);
         valCol.setSortable(false);
+        valCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        valCol.setOnEditCommit(
+            new EventHandler<CellEditEvent<KeyValueData, String>>() {
+                @Override
+                public void handle(CellEditEvent<KeyValueData, String> t) {
+                    KeyValueData data = ((KeyValueData) t.getTableView().getItems().get(t.getTablePosition().getRow()));
+                    data.setValue(t.getNewValue());
+                    kad.put(data.getRawKey(), data.getRawValue());
+                }
+            }
+        );
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         grid.add(table, 0, 0, 10, 5);
         
+        keyHashLookup = new HashMap();
+        
         /* GET */
         //TextField
-        TextField getValueTextField = new TextField();
-        getValueTextField.setPromptText("Key");
-        grid.add(getValueTextField, 0, 5, 3, 1);
+        TextField getKeyTextField = new TextField();
+        getKeyTextField.setPromptText("Key");
+        grid.add(getKeyTextField, 0, 5, 3, 1);
         //Button
         Button getBtn = new Button();
         getBtn.setText("Get Value");
         getBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                if (getValueTextField.getText().length() == 0) {
+                if (getKeyTextField.getText().length() == 0) {
                     return;
                 }
-                kad.get(getValueTextField.getText());
-                getValueTextField.clear();
+                keyHashLookup.put(Lookup.hash(getKeyTextField.getText().getBytes()), getKeyTextField.getText());
+                kad.get(getKeyTextField.getText());
+                getKeyTextField.clear();
             }
         });
         grid.add(getBtn, 3, 5);
@@ -109,6 +128,7 @@ public class DataGUITab extends Tab {
                 if (putKeyTextField.getText().length() == 0 || putValueTextField.getText().length() == 0) {
                     return;
                 }
+                keyHashLookup.put(Lookup.hash(putKeyTextField.getText().getBytes()), putKeyTextField.getText());
                 kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
                 incomingKeyValueData(Lookup.hash(putKeyTextField.getText().getBytes()), putValueTextField.getText().getBytes());
                 putKeyTextField.clear();
@@ -185,7 +205,11 @@ public class DataGUITab extends Tab {
         this.setContent(grid);
     }
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
-        keyValueDataList.add(new KeyValueData(rawKey, rawValue));
+        if (keyHashLookup.containsKey(rawKey)) {
+            keyValueDataList.add(new KeyValueData(keyHashLookup.get(rawKey), rawValue));
+        } else {
+            keyValueDataList.add(new KeyValueData(rawKey, rawValue));
+        }
     }
     public static void alertForError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR, message);

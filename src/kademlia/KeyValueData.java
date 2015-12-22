@@ -13,7 +13,7 @@ import javafx.beans.property.SimpleStringProperty;
  */
 public class KeyValueData {
     private final long rawKey;
-    private final byte[] rawValue;
+    private byte[] rawValue;
     private final SimpleStringProperty key;
     private final SimpleStringProperty value;
     public KeyValueData(long key, byte[] value) {
@@ -28,13 +28,26 @@ public class KeyValueData {
         this.key = new SimpleStringProperty(key + "");
         this.value = new SimpleStringProperty(value);
     }
+    public KeyValueData(String key, byte[] value) {
+        this.rawKey = Lookup.hash(key.getBytes());
+        this.rawValue = value;
+        this.key = new SimpleStringProperty(key + "");
+        this.value = new SimpleStringProperty(new String(value));
+    }
     public String getKey() {
         return key.get();
+    }
+    public long getRawKey() {
+        return rawKey;
+    }
+    public byte[] getRawValue() {
+        return rawValue;
     }
     public String getValue() {
         return value.get();
     }
     public void setValue(String newValue) {
-        value.set(newValue);
+        this.value.set(newValue);
+        this.rawValue = newValue.getBytes();
     }
 }

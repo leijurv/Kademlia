@@ -47,14 +47,14 @@ public class Connection {
                     while (isStillRunning) {
                         RequestPing rp = new RequestPing();
                         if (!sendRequest(rp)) {
-                            System.out.println("SEND FAILED. PING FAILED.");
+                            console.log("SEND FAILED. PING FAILED.");
                             isStillRunning = false;
                             socket.close();
                             return;
                         }
                         Thread.sleep(10000);
                         if (!isStillRunning || isRequestStillPending(rp)) {
-                            System.out.println("TOOK MORE THAN TEN SECONDS TO RESPOND. PING FAILED.");
+                            console.log("TOOK MORE THAN TEN SECONDS TO RESPOND. PING FAILED.");
                             isStillRunning = false;
                             socket.close();
                             return;
@@ -86,12 +86,12 @@ public class Connection {
                 out.write(toWrite);
             }
             if (Kademlia.verbose) {
-                System.out.println(kademliaRef.myself + " Sent request " + r + " to " + node);
+                console.log(kademliaRef.myself + " Sent request " + r + " to " + node);
             }
             return true;
         } catch (IOException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Exception while sending request");
+            console.log("Exception while sending request");
             pendingRequests.remove(r.requestID);
             return false;
         }
@@ -105,7 +105,7 @@ public class Connection {
                 throw new IOException("Sent response ID " + requestID + " for nonexistant request");
             }
             if (Kademlia.verbose) {
-                System.out.println(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left");
+                console.log(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left");
             }
             r.onResponse(in, this);
         } else {
@@ -124,7 +124,7 @@ public class Connection {
                             out.write(toSend);
                         }
                         if (Kademlia.verbose) {
-                            System.out.println(kademliaRef.myself + " Sent response to " + request);
+                            console.log(kademliaRef.myself + " Sent response to " + request);
                         }
                     } catch (IOException ex) {
                         Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
@@ -132,7 +132,7 @@ public class Connection {
                 }
             }.start();
             if (Kademlia.verbose) {
-                System.out.println(kademliaRef.myself + " Received request " + request + " from " + node);
+                console.log(kademliaRef.myself + " Received request " + request + " from " + node);
             }
         }
     }
