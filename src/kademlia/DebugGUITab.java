@@ -20,14 +20,11 @@ import javafx.stage.Stage;
  */
 public class DebugGUITab extends Tab {
     private static TextArea console;
-    private static String textHolder = ""; 
+    private static String textHolder = "";
     DebugGUITab(Stage primaryStage) {
         super();
-        
         this.setText("Debug");
         this.setClosable(true);
-
-        
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -49,19 +46,16 @@ public class DebugGUITab extends Tab {
         console.setEditable(false);
         //console.setStyle(".text-area .content {-fx-background-color: black}; ");//-fx-text-fill: yellow;
         console.setText(textHolder);
-        
         grid.add(console, 0, 0, 10, 5);
-        
         //Tab
         this.setContent(grid);
     }
     public static void addLog(String message) {
-        Platform.runLater(() -> {
-            if (console == null) {
-                textHolder += message + "\n";
-                return;
-            }
-            console.appendText(message + "\n");
-        });
+        textHolder += message + "\n";
+        if (console != null) {
+            Platform.runLater(() -> {
+                console.setText(textHolder);
+            });
+        }
     }
 }
