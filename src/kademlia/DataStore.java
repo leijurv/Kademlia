@@ -33,7 +33,7 @@ public class DataStore {
         this.dataStoreFile = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
             try {
-                console.log("datastorage is reading from save " + getSaveFile().getCanonicalPath());
+                console.log("datastorage is reading metadata from save " + getSaveFile().getCanonicalPath());
             } catch (IOException ex) {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
             }

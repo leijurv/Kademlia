@@ -188,7 +188,7 @@ public class Kademlia {
         console.log("I am " + ip);
         this.buckets = new Bucket[64];
         if (getSaveFile().exists()) {
-            console.log("Kademlia is reading from save");
+            console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
             try (FileInputStream fileIn = new FileInputStream(getSaveFile())) {
                 DataInputStream in = new DataInputStream(fileIn);
                 nodeid = in.readLong();
@@ -206,6 +206,7 @@ public class Kademlia {
         }
         this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
+        console.log("Kademlia is using settings: " + settings);
         storedData = new DataStore(this);
         runKademlia();
         startSaveThread();
@@ -232,7 +233,7 @@ public class Kademlia {
         }.start();
     }
     private void writeToSave() throws IOException {
-        console.log("Writing to save file");
+        console.log("Kademlia is writing to save file");
         try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
             DataOutputStream out = new DataOutputStream(fileOut);
             out.writeLong(myself.nodeid);

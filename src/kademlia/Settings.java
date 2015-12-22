@@ -8,6 +8,9 @@ package kademlia;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -33,5 +36,20 @@ public class Settings {
     }
     public void onChange() {
         kademliaRef.heyYouShouldSaveSoon();
+    }
+    @Override
+    public String toString() {
+        Field[] allFields = Settings.class.getDeclaredFields();
+        String resp = "\n";
+        for (Field field : allFields) {
+            try {
+                if (!field.toString().contains("kademliaRef")) {
+                    resp += field + ":" + field.get(this) + "\n";
+                }
+            } catch (IllegalArgumentException | IllegalAccessException ex) {
+                Logger.getLogger(Settings.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return resp;
     }
 }
