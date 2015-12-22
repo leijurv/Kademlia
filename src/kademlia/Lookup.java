@@ -226,7 +226,6 @@ public class Lookup {
         onCompletion();
     }
     public void onCompletion() {
-        DataGUITab.incomingKeyValueData(key, value);
         if (needsToAssemble) {
             System.out.println("Received metadata. Starting assembly...");
             new Thread() {
@@ -245,6 +244,7 @@ public class Lookup {
             assembly.onPartCompleted(key, value, true);
             return;
         }
+        DataGUITab.incomingKeyValueData(key, value);
         System.out.println((isKeyLookup ? new String(value) : finalResult));
     }
 }

@@ -11,11 +11,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -28,12 +30,13 @@ public class DataStore {
     public DataStore(String data, Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
         this.rand = new Random();
-        this.dataStoreFile = System.getProperty("user.home") + "/Documents/kad/" + data + "/";
+        this.dataStoreFile = System.getProperty("user.home") + "/.kademlia/" + data + "/";
         if (getSaveFile().exists()) {
             readFromSave();
         }
         new File(dataStoreFile).mkdirs();
         startThread();
+        startMemoryConvervationThread();
     }
 
     public class StoredData {
@@ -74,6 +77,9 @@ public class DataStore {
         }
         public byte[] getData() {
             lastRetreived = System.currentTimeMillis();
+            return getData0();
+        }
+        private byte[] getData0() {
             synchronized (lock) {
                 if (data != null) {
                     return data;
@@ -134,18 +140,18 @@ public class DataStore {
             new Thread() {
                 @Override
                 public void run() {
-                    while (true) {
-                        try {
+                    try {
+                        while (true) {
                             Thread.sleep(60000 + rand.nextInt(10000));
                             boolean wasNot = data == null;
                             System.out.println("Refreshing " + key + " " + wasNot);
-                            kademliaRef.put(key, getData());
+                            kademliaRef.put(key, getData0());
                             if (wasNot) {
                                 data = null;//#ConverveMemory
                             }
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
                         }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             }.start();
@@ -154,6 +160,35 @@ public class DataStore {
     final HashMap<Long, StoredData> storedData = new HashMap<>();
     final Object lock = new Object();
     volatile boolean shouldSave = true;
+    final long maxRamSize = 10 * 1048576;
+    private void startMemoryConvervationThread() {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        System.out.println("Clearing ram");
+                        synchronized (lock) {
+                            ArrayList<StoredData> inRAM = storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).collect(Collectors.toCollection(ArrayList::new));
+                            long currentRAMSize = inRAM.stream().mapToLong(x -> x.size).sum();
+                            inRAM.sort((StoredData o1, StoredData o2) -> new Long(o1.lastRetreived).compareTo(o2.lastRetreived));
+                            System.out.println("Size before: " + currentRAMSize);
+                            while (currentRAMSize > maxRamSize) {
+                                StoredData sd = inRAM.remove(0);
+                                System.out.println("Removed " + sd.size + " bytes");
+                                sd.data = null;
+                                currentRAMSize -= sd.size;
+                            }
+                            System.out.println("Size after: " + currentRAMSize);
+                        }
+                        Thread.sleep(20000);
+                    }
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }.start();
+    }
     public byte[] get(long key) {
         StoredData data = storedData.get(key);
         if (data == null) {
