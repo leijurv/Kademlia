@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.DeflaterInputStream;
 
 /**
  *
@@ -259,9 +262,26 @@ public class Kademlia {
         }
         new Lookup(keyF, this, true, true, storPath).execute();
     }
+    private static ByteArrayInputStream cache(InputStream in) throws IOException {
+        byte[] temp = new byte[65536];
+        int j;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        while (true) {
+            j = in.read(temp);
+            if (j < 0) {
+                break;
+            }
+            out.write(temp, 0, j);
+        }
+        in.close();
+        return new ByteArrayInputStream(out.toByteArray());
+    }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
-        try (FileInputStream in = new FileInputStream(file)) {
+        try (FileInputStream fileIn = new FileInputStream(file)) {
+            console.log("File is size " + fileIn.available());
+            ByteArrayInputStream in = cache(new DeflaterInputStream(fileIn));
+            console.log("Compressed is size " + in.available());
             int size = in.available();
             int partSize = 524288;
             int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
