@@ -180,6 +180,8 @@ public class DataStore {
                                 currentRAMSize -= sd.size;
                             }
                             System.out.println("Size after: " + currentRAMSize);
+                            System.out.println("Running gc");
+                            System.gc();
                         }
                         Thread.sleep(20000);
                     }
