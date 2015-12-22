@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TextArea;
@@ -55,10 +56,12 @@ public class DebugGUITab extends Tab {
         this.setContent(grid);
     }
     public static void addLog(String message) {
-        if (console == null) {
-            textHolder += message + "\n";
-            return;
-        }
-        console.appendText(message + "\n");
+        Platform.runLater(() -> {
+            if (console == null) {
+                textHolder += message + "\n";
+                return;
+            }
+            console.appendText(message + "\n");
+        });
     }
 }
