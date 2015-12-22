@@ -40,11 +40,18 @@ public class KeyValueData {
     public long getRawKey() {
         return rawKey;
     }
+    public void setRawValue(byte[] rawValue) {
+        this.rawValue = rawValue;
+        this.value.set(new String(rawValue));
+    }
     public byte[] getRawValue() {
         return rawValue;
     }
     public String getValue() {
         return value.get();
+    }
+    public SimpleStringProperty getValueProperty() {
+        return value;
     }
     public void setValue(String newValue) {
         this.value.set(newValue);

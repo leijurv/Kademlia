@@ -8,6 +8,7 @@ package kademlia;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -18,6 +19,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -28,6 +30,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 /**
  *
@@ -69,7 +72,11 @@ public class DataGUITab extends Tab {
         keyCol.setEditable(false);
         keyCol.setSortable(false);
         TableColumn valCol = new TableColumn("Value");
-        valCol.setCellValueFactory(new PropertyValueFactory<>("value"));
+        valCol.setCellValueFactory(new Callback<CellDataFeatures<KeyValueData, String>, ObservableValue<String>>() {
+            public ObservableValue<String> call(CellDataFeatures<KeyValueData, String> p) {
+                return p.getValue().getValueProperty();
+            }
+         });
         valCol.setPrefWidth(500);
         valCol.setEditable(true);
         valCol.setSortable(false);
@@ -84,6 +91,7 @@ public class DataGUITab extends Tab {
                 }
             }
         );
+
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         grid.add(table, 0, 0, 10, 5);
@@ -140,7 +148,7 @@ public class DataGUITab extends Tab {
         //TextField
         TextField putFileKeyTextField = new TextField();
         putFileKeyTextField.setPromptText("Key");
-        grid.add(putFileKeyTextField, 0, 7, 3, 1);
+        grid.add(putFileKeyTextField, 5, 7, 3, 1);
         //Button
         Button putFileBtn = new Button();
         putFileBtn.setText("Put File");
@@ -164,12 +172,12 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        grid.add(putFileBtn, 3, 7);
+        grid.add(putFileBtn, 8, 7);
         /* GET FILE */
         //TextField
         TextField getFileKeyTextField = new TextField();
         getFileKeyTextField.setPromptText("Key");
-        grid.add(getFileKeyTextField, 5, 7, 3, 1);
+        grid.add(getFileKeyTextField, 0, 7, 3, 1);
         //Button
         Button getFileBtn = new Button();
         getFileBtn.setText("Get File");
@@ -193,7 +201,7 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        grid.add(getFileBtn, 8, 7);
+        grid.add(getFileBtn, 3, 7);
         /* Progress Bar */
         fileProgressBar = new ProgressBar();
         fileProgressBar.setProgress(0);
@@ -205,6 +213,12 @@ public class DataGUITab extends Tab {
         this.setContent(grid);
     }
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
+        for (int i = 0; i < keyValueDataList.size(); i++) {
+            if (keyValueDataList.get(i).getRawKey() == rawKey) {
+                keyValueDataList.get(i).setRawValue(rawValue);
+                return;
+            }
+        }
         if (keyHashLookup.containsKey(rawKey)) {
             keyValueDataList.add(new KeyValueData(keyHashLookup.get(rawKey), rawValue));
         } else {
