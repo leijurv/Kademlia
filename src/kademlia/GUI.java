@@ -28,10 +28,10 @@ public class GUI extends Application {
         DataGUITab dataTab = new DataGUITab(primaryStage, kad);
         ConnectionGUITab connectionTab = new ConnectionGUITab(primaryStage, kad);
         NodeInfoGUITab nodeInfoTab = new NodeInfoGUITab(primaryStage, kad);
-        
+        DebugGUITab debugTab = new DebugGUITab(primaryStage);
         
         //Tab
-        tabPane.getTabs().addAll(dataTab, connectionTab, nodeInfoTab);
+        tabPane.getTabs().addAll(dataTab, connectionTab, nodeInfoTab, debugTab);
         //Scene
         Scene scene = new Scene(tabPane, 1000, 750);
         primaryStage.setTitle("Kademlia GUI");

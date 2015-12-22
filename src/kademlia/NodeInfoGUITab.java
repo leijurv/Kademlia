@@ -70,19 +70,23 @@ public class NodeInfoGUITab extends Tab {
         
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         Runnable getBytesForLabel = () -> {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    bytesStoredInRAMLabel.setText("Bytes Stored in Ram: " + kad.storedData.bytesStoredInRAM());
-                    bytesStoredOnDiskLabel.setText("Bytes Stored on Disk: " + kad.storedData.bytesStoredOnDisk());
-                    bytesStoredTotalLabel.setText("Bytes Stored in Total: " + kad.storedData.bytesStoredInTotal());
-                }
+            Platform.runLater(() -> {
+                bytesStoredInRAMLabel.setText("Data Stored in Ram: " + humanReadableByteCount(kad.storedData.bytesStoredInRAM(), true));
+                bytesStoredOnDiskLabel.setText("Data Stored on Disk: " + humanReadableByteCount(kad.storedData.bytesStoredOnDisk(), true));
+                bytesStoredTotalLabel.setText("Data Stored in Total: " + humanReadableByteCount(kad.storedData.bytesStoredInTotal(), true));
             });
         };
         executor.scheduleAtFixedRate(getBytesForLabel, 0, 5, TimeUnit.SECONDS);
         
         //Tab
         this.setContent(grid);
+    }
+    public static String humanReadableByteCount(long bytes, boolean si) {
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
     
 }
