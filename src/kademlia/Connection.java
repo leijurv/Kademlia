@@ -52,14 +52,14 @@ public class Connection {
                             socket.close();
                             return;
                         }
-                        Thread.sleep(10000);
+                        Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
                         if (!isStillRunning || isRequestStillPending(rp)) {
                             console.log("TOOK MORE THAN TEN SECONDS TO RESPOND. PING FAILED.");
                             isStillRunning = false;
                             socket.close();
                             return;
                         }
-                        Thread.sleep(60000 + rand.nextInt(5000));//randomness. dont both ping each other at the exact same time.
+                        Thread.sleep(kademliaRef.settings.pingIntervalSec * 1000 + rand.nextInt(kademliaRef.settings.pingIntervalSec * 100));//randomness. dont both ping each other at the exact same time.
                     }
                 } catch (InterruptedException | IOException ex) {
                     Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
