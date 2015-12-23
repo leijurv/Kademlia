@@ -18,7 +18,9 @@ import java.util.logging.Logger;
  * @author aidan
  */
 public class ControlSocket {
-    // Syntax is [int number of parameters, [int length of each parameter], protocol, [parameters]]
+
+    // Syntax is [int number of parameters, [int length of each parameter], protocol, id, [parameters]]
+
     ControlSocket(int port) throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
@@ -41,6 +43,7 @@ public class ControlSocket {
                                         }
                                         byte[][] paramaterArray = new byte[paramaters][];
                                         int protocol = in.readInt();
+                                        int id = in.readInt();
                                         for (int i = 0; i < lengthArray.length; i++) {
                                             byte[] data = new byte[lengthArray[i]];
                                             in.readFully(data);
@@ -56,8 +59,9 @@ public class ControlSocket {
                                             case 1:
                                                 System.out.println("GET");
                                                 String result = "result";
-                                                out.writeInt(protocol);
-                                                out.write(paramaterArray[0]);
+                                                out.writeInt(id);
+                                                out.writeInt(result.getBytes().length);
+                                                System.out.println(result.getBytes().length);
                                                 out.write(result.getBytes());
                                                 break;
                                             case 2:
