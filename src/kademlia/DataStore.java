@@ -237,7 +237,7 @@ public class DataStore {
     }
     public void put(long key, byte[] value, long lastModified) {
         long hash = Lookup.hash(value);
-        console.log("Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified);
+        console.log((key != hash ? "BAD HASH" : "GOOD KUSH") + " Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified);
         synchronized (lock) {
             if (hasKey(key)) {
                 StoredData data = storedData.get(key);
