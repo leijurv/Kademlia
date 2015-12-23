@@ -212,6 +212,17 @@ public class Kademlia {
         storedData = new DataStore(this);
         runKademlia();
         startSaveThread();
+        startPingAllThread();
+    }
+    private void startPingAllThread() {
+        new Thread() {
+            @Override
+            public void run() {
+                for (int i = 0; i < 64; i++) {
+                    buckets[i].pingAll();
+                }
+            }
+        }.start();
     }
     public void heyYouShouldSaveSoon() {
         shouldSave = true;

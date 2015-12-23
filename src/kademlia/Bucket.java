@@ -78,6 +78,16 @@ public class Bucket {
             return true;
         }
     }
+    public void pingAll() {
+        new Thread() {
+            @Override
+            public void run() {
+                for (long nodeid : nodeids) {
+                    pingThatNode(nodeid);
+                }
+            }
+        }.start();
+    }
     public void pingThatNode(long toRemove) {
         Node n = nodes.get(toRemove);
         if (n == null) {
