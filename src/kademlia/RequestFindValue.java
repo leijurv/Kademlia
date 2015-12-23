@@ -41,6 +41,7 @@ public class RequestFindValue extends Request {
             }
             out.writeInt(value.length);
             out.write(value);
+            return;
         }
         if (Kademlia.verbose) {
             console.log(kademliaRef.myself + " Looking for nodes near key " + key);
@@ -61,7 +62,13 @@ public class RequestFindValue extends Request {
             int len = in.readInt();
             byte[] value = new byte[len];
             in.readFully(value);
-            lookup.foundValue(value);
+            new Thread() {
+                @Override
+                public void run() {
+                    lookup.foundValue(value);
+                }
+            }.start();
+            return;
         }
         int num = in.readInt();
         ArrayList<Node> nodes = new ArrayList<>(num);
