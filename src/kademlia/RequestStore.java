@@ -43,7 +43,7 @@ public class RequestStore extends Request {
     public void sendData(DataOutputStream out) throws IOException {
         out.writeLong(key);
         out.writeLong(lastModified);
-        out.writeInt(length - offset);
+        out.writeInt(length);
         out.write(value, offset, length);
     }
     @Override
