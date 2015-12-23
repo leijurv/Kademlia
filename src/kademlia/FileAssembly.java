@@ -38,7 +38,6 @@ public class FileAssembly {
         this.kademliaRef = kademliaRef;
         this.storageLocation = storageLocation;
     }
-    String search = "";
     public void assemble() {
         HashSet<Long> uniqueh = new HashSet<>();
         for (int i = 0; i < hashes.length; i++) {
@@ -55,18 +54,12 @@ public class FileAssembly {
                     if (pos != null) {
                         onPartCompleted(hash, pos, false);
                     } else {
-                        search += (hash + "\n");
+                        console.log("LOOKING FOR " + hash);
                         new Lookup(FileAssembly.this, hash, kademliaRef).execute();
                     }
                 }
             }.start();
         }
-        try {
-            Thread.sleep(100);//there is probably a better way to wait for all the threads we just started to append to search
-        } catch (InterruptedException ex) {
-            Logger.getLogger(FileAssembly.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        console.log("LOOKING FOR " + search);
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
         long partHash = Lookup.hash(contents);
