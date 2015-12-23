@@ -293,7 +293,14 @@ public class Kademlia {
                 int j = in.read(y);
                 if (j < 0) {
                     if (!wl) {
-                        console.log("Either this file has only one part, or it was exactly divisible into parts of " + partSize + ", or I messed something up");
+                        if (i == 1) {
+                            console.log("This file was divided into only one part");
+                        } else {
+                            if (i == 0) {
+                                throw new IllegalStateException("i=0");
+                            }
+                            console.log("This file was exactly divisible into parts of " + partSize + ", or I messed something up");
+                        }
                     }
                     break;
                 }
