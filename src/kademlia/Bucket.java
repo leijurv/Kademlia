@@ -107,9 +107,7 @@ public class Bucket {
                 } catch (IOException | InterruptedException ex) {
                     Logger.getLogger(Bucket.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                if (Kademlia.verbose) {
-                    console.log("removing " + n + " from bucket because its bad");
-                }
+                console.log("removing " + n + " from bucket because its bad");
                 removeNode(n);
             }
         }.start();
