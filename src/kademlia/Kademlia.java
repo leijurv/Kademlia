@@ -5,7 +5,6 @@
  */
 package kademlia;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -262,25 +261,11 @@ public class Kademlia {
         }
         new Lookup(keyF, this, true, true, storPath).execute();
     }
-    private static ByteArrayInputStream cache(InputStream in) throws IOException {
-        byte[] temp = new byte[65536];
-        int j;
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        while (true) {
-            j = in.read(temp);
-            if (j < 0) {
-                break;
-            }
-            out.write(temp, 0, j);
-        }
-        in.close();
-        return new ByteArrayInputStream(out.toByteArray());
-    }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
         try (FileInputStream fileIn = new FileInputStream(file)) {
             console.log("File is size " + fileIn.available());
-            ByteArrayInputStream in = cache(new DeflaterInputStream(fileIn));
+            InputStream in = new DeflaterInputStream(fileIn);
             int partSize = 524288;
             progress = 0;
             max = 1;
