@@ -19,7 +19,6 @@ import java.util.logging.Logger;
  */
 public class ControlSocket {
     // Syntax is [int number of parameters, [int length of each parameter], protocol, [parameters]]
-
     ControlSocket(int port) throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
@@ -44,9 +43,10 @@ public class ControlSocket {
                                         int protocol = in.readInt();
                                         for (int i = 0; i < lengthArray.length; i++) {
                                             byte[] data = new byte[lengthArray[i]];
-                                            for (int j = 0; j < lengthArray[i]; j++) {
-                                                data[j] = in.readByte();
-                                            }
+                                            in.readFully(data);
+                                            /*for (int j = 0; j < lengthArray[i]; j++) {
+                                             data[j] = in.readByte();
+                                             }*/
                                             paramaterArray[i] = data;
                                         }
                                         switch (protocol) {
@@ -75,7 +75,6 @@ public class ControlSocket {
                                 }
                             }
                         }.start();
-
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
