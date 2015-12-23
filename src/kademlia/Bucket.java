@@ -101,15 +101,16 @@ public class Bucket {
                     Connection conn = kademliaRef.getOrCreateConnectionToNode(n);
                     conn.sendRequest(rp);
                     Thread.sleep(1000);
-                    if (!conn.isStillRunning || conn.isRequestStillPending(rp)) {
-                        if (Kademlia.verbose) {
-                            console.log("removing " + n + " from bucket because its bad");
-                        }
-                        removeNode(n);
+                    if (conn.isStillRunning && !conn.isRequestStillPending(rp)) {
+                        return;
                     }
                 } catch (IOException | InterruptedException ex) {
                     Logger.getLogger(Bucket.class.getName()).log(Level.SEVERE, null, ex);
                 }
+                if (Kademlia.verbose) {
+                    console.log("removing " + n + " from bucket because its bad");
+                }
+                removeNode(n);
             }
         }.start();
     }
