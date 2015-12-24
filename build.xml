@@ -10,6 +10,18 @@
 <project name="Kademlia" default="default" basedir=".">
     <description>Builds, tests, and runs the project Kademlia.</description>
     <import file="nbproject/build-impl.xml"/>
+    <taskdef name="bundleapp"
+             classname="com.oracle.appbundler.AppBundlerTask"   
+             classpath="lib/appbundler-1.0.jar" />
+    <target name="bundle-kademlia">
+        <bundleapp outputdirectory="dist"
+            name="kademlia"
+            displayname="Kademlia"
+            identifier="kademlia.Kademlia"
+            mainclassname="kademlia.Kademlia">
+            <classpath file="dist/Kademlia.jar" />
+        </bundleapp>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 
