@@ -18,19 +18,20 @@ import java.util.logging.Logger;
  */
 public class Lookup {
     final long key;
-    final Kademlia kademliaRef;
-    byte[] value = null;
-    ArrayList<Node> closest = null;
-    ArrayList<Node> alreadyAsked = new ArrayList<>();
-    final boolean isKeyLookup;
-    Node finalResult;
-    byte[] contentsToPut = null;
-    int contOffset = 0;
-    int contLen = 0;
-    boolean needsToAssemble = false;
-    FileAssembly assembly = null;
-    String storageLocation = null;
-    long lastMod = 0;
+    private final Kademlia kademliaRef;
+    private byte[] value = null;
+    private ArrayList<Node> closest;
+    private final ArrayList<Node> alreadyAsked = new ArrayList<>();
+    private final boolean isKeyLookup;
+    private Node finalResult;
+    private final byte[] contentsToPut;
+    private final int contOffset;
+    private final int contLen;
+    private final boolean needsToAssemble;
+    private final FileAssembly assembly;
+    private final String storageLocation;
+    private final long lastMod;
+    private final StoredData storedData;
     public static long hash(byte[] o) {
         return hash(o, 0, o.length);
     }
@@ -51,32 +52,54 @@ public class Lookup {
         }
         return Math.abs(h);
     }
+    public Lookup(long key, Kademlia kademliaRef, StoredData data) {
+        this.contLen = 0;
+        this.contentsToPut = null;
+        this.contOffset = 0;
+        this.needsToAssemble = false;
+        this.assembly = null;
+        this.storageLocation = null;
+        this.lastMod = 0;
+        this.closest = null;
+        this.storedData = data;
+        this.isKeyLookup = false;
+        this.key = key;
+        this.kademliaRef = kademliaRef;
+    }
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(key, kademliaRef, contents, lastModified, 0, contents.length);
+        this.closest = null;
     }
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified, int offset, int length) {
         this(key, kademliaRef, false);
-        contentsToPut = contents;
-        this.lastMod = lastModified;
-        this.contOffset = offset;
-        this.contLen = length;
+        this.closest = null;
     }
     public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(hash(path.getBytes()), kademliaRef, contents, lastModified);
+        this.closest = null;
     }
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
-        assembly = f;
+        this.closest = null;
     }
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
+        this.closest = null;
     }
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
-        this.needsToAssemble = assemble;
-        this.storageLocation = storageLocation;
+        this.closest = null;
     }
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup) {
+        this.contLen = 0;
+        this.contentsToPut = null;
+        this.contOffset = 0;
+        this.needsToAssemble = false;
+        this.assembly = null;
+        this.storageLocation = null;
+        this.lastMod = 0;
+        this.storedData = null;
+        this.closest = null;
         this.key = key;
         this.kademliaRef = kademliaRef;
         this.isKeyLookup = isKeyLookup;
@@ -126,6 +149,17 @@ public class Lookup {
             if (!isKeyLookup) {
                 if (Kademlia.verbose) {
                     console.log("The closest to key " + key + " was " + closest.get(0));
+                }
+                if (storedData != null) {
+                    for (Node storageNode : closest) {
+                        if (!kademliaRef.myself.equals(storageNode)) {
+                            try {
+                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestTest(storedData));
+                            } catch (IOException ex) {
+                                Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                    }
                 }
                 if (contentsToPut != null) {
                     for (Node storageNode : closest) {
@@ -230,6 +264,11 @@ public class Lookup {
                 console.log("Lookup for " + key + " is recursively executing");
             }
             execute();
+        }
+    }
+    public void onConnectionError() {
+        if (!isLookupFinished()) {
+            execute();//if there was an error with one of the requests but we aren't done, try try again
         }
     }
     public void foundValue(byte[] value) {

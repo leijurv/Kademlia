@@ -15,8 +15,8 @@ import java.util.ArrayList;
  * @author leijurv
  */
 public class RequestFindValue extends Request {
-    final long key;
-    final Lookup lookup;
+    private final long key;
+    private final Lookup lookup;
     public RequestFindValue(Lookup lookup) {
         super((byte) 3);
         this.key = lookup.key;
@@ -89,5 +89,9 @@ public class RequestFindValue extends Request {
                 lookup.foundNodes(nodes);
             }
         }.start();
+    }
+    @Override
+    public void onError(Connection conn) {
+        lookup.onConnectionError();
     }
 }

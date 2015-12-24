@@ -18,11 +18,11 @@ import java.util.logging.Logger;
  * @author leijurv
  */
 public class Bucket {
-    final int distance;
+    private final int distance;
     final ArrayList<Long> nodeids;
     final HashMap<Long, Node> nodes;
     private final ArrayList<Node> replacementCache;
-    final Kademlia kademliaRef;
+    private final Kademlia kademliaRef;
     public Bucket(int distance, Kademlia kademliaRef) {
         this.distance = distance;
         this.nodes = new HashMap<>();
@@ -101,7 +101,7 @@ public class Bucket {
                     Connection conn = kademliaRef.getOrCreateConnectionToNode(n);
                     conn.sendRequest(rp);
                     Thread.sleep(1000);
-                    if (conn.isStillRunning && !conn.isRequestStillPending(rp)) {
+                    if (conn.isStillRunning() && !conn.isRequestStillPending(rp)) {
                         return;
                     }
                 } catch (IOException | InterruptedException ex) {

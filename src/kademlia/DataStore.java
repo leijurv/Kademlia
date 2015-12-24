@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,11 +24,9 @@ import java.util.stream.Collectors;
  */
 public class DataStore {
     final String dataStoreFile;
-    final Random rand;
     final Kademlia kademliaRef;
     public DataStore(Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
-        this.rand = new Random();
         this.dataStoreFile = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
             try {
@@ -43,128 +40,9 @@ public class DataStore {
         startThread();
         startMemoryConvervationThread();
     }
-
-    public class StoredData {
-        final long key;
-        byte[] data;
-        long hash;
-        long lastModified;
-        long lastRetreived;
-        long size;
-        final Object lock = new Object();
-        public void write(DataOutputStream out) throws IOException {
-            out.writeLong(key);
-            out.writeLong(size);
-            out.writeLong(hash);
-            out.writeLong(lastModified);
-            out.writeLong(lastRetreived);
-        }
-        public StoredData(DataInputStream in) throws IOException {
-            this.key = in.readLong();
-            this.size = in.readLong();
-            this.hash = in.readLong();
-            this.lastModified = in.readLong();
-            this.lastRetreived = in.readLong();
-            this.data = null;
-            startThread();
-        }
-        public StoredData(long key, byte[] data, long lastModified) {
-            this.key = key;
-            this.size = data.length;
-            this.data = data;
-            this.hash = Lookup.hash(data);
-            this.lastModified = lastModified;
-            this.lastRetreived = 0;
-            startThread();
-        }
-        public boolean isInRAM() {
-            return data != null;
-        }
-        public byte[] getData() {
-            lastRetreived = System.currentTimeMillis();
-            return getData0();
-        }
-        private byte[] getData0() {
-            synchronized (lock) {
-                if (data != null) {
-                    return data;
-                }
-                File save = getFile();
-                if (save.exists()) {
-                    try (DataInputStream in = new DataInputStream(new FileInputStream(save))) {
-                        byte[] temp = new byte[(int) size];
-                        int j = in.read(temp);
-                        if (j != size) {
-                            throw new IllegalStateException("kush");
-                        }
-                        data = temp;
-                        long checksum = Lookup.hash(data);
-                        if (checksum != hash) {
-                            System.out.println("Did read from disk. Expected hash: " + hash + ". Real hash: " + checksum);
-                        }
-                    } catch (IOException ex) {
-                        Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    return data;
-                } else {
-                    throw new IllegalStateException("huh?");
-                }
-            }
-        }
-        public void update(byte[] newData, long lastModified) {
-            synchronized (lock) {
-                this.data = newData;
-                this.size = newData.length;
-                this.hash = Lookup.hash(newData);
-                this.lastModified = lastModified;
-            }
-            beginSave();
-        }
-        public void beginSave() {
-            new Thread() {
-                @Override
-                public void run() {
-                    doSave();
-                }
-            }.start();
-        }
-        public void doSave() {
-            synchronized (lock) {
-                File save = getFile();
-                try (FileOutputStream out = new FileOutputStream(save)) {
-                    out.write(data);
-                } catch (IOException ex) {
-                    Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
-        public File getFile() {
-            return new File(dataStoreFile + key);
-        }
-        private void startThread() {
-            new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        while (true) {
-                            Thread.sleep(60000 + rand.nextInt(10000));
-                            boolean wasNot = data == null;
-                            console.log("Refreshing " + key + " " + wasNot);
-                            kademliaRef.put(key, getData0());
-                            if (wasNot) {
-                                data = null;//#ConverveMemory
-                            }
-                        }
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }.start();
-        }
-    }
-    final HashMap<Long, StoredData> storedData = new HashMap<>();
-    final Object lock = new Object();
-    volatile boolean shouldSave = true;
+    private final HashMap<Long, StoredData> storedData = new HashMap<>();
+    private final Object lock = new Object();
+    private volatile boolean shouldSave = true;
     private void startMemoryConvervationThread() {
         new Thread() {
             @Override
@@ -205,6 +83,9 @@ public class DataStore {
         }
         shouldSave = true;
         return data.getData();
+    }
+    public StoredData getMetadata(long key) {
+        return storedData.get(key);
     }
     public boolean hasKey(long key) {
         return storedData.get(key) != null;
@@ -255,7 +136,7 @@ public class DataStore {
                 return;
             }
             shouldSave = true;
-            StoredData data = new StoredData(key, value, lastModified);
+            StoredData data = new StoredData(key, value, lastModified, this);
             storedData.put(key, data);
             data.beginSave();
         }
@@ -285,7 +166,7 @@ public class DataStore {
                 int num = in.readInt();
                 storedData.clear();
                 for (int i = 0; i < num; i++) {
-                    StoredData data = new StoredData(in);
+                    StoredData data = new StoredData(in, this);
                     storedData.put(data.key, data);
                 }
             } catch (IOException ex) {

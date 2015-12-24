@@ -18,7 +18,7 @@ public abstract class Request {
     private static final SecureRandom sc = new SecureRandom();
     final byte requestType;
     final long requestID;
-    public Request(byte requestType) {
+    protected Request(byte requestType) {
         this.requestType = requestType;
         requestID = sc.nextLong();
     }
@@ -35,6 +35,7 @@ public abstract class Request {
     public abstract void sendData(DataOutputStream out) throws IOException;
     public abstract void execute(Kademlia kademliaRef, DataOutputStream out) throws IOException;
     public abstract void onResponse(DataInputStream in, Connection conn) throws IOException;
+    public abstract void onError(Connection conn);
     public static Request read(DataInputStream in) throws IOException {
         long requestID = in.readLong();
         byte requestType = in.readByte();
@@ -47,6 +48,8 @@ public abstract class Request {
                 return new RequestFindNode(requestID, in);
             case 3:
                 return new RequestFindValue(requestID, in);
+            case 4:
+                return new RequestTest(requestID, in);
             default:
                 throw new IOException("Invalid request type " + requestType);
         }

@@ -348,13 +348,13 @@ public class Kademlia {
         }
         new Lookup(d, this, true).execute();
     }
-    public Bucket bucketFromNode(Node n) {
+    private Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);
     }
-    public Bucket bucketFromDistance(long distance) {
+    private Bucket bucketFromDistance(long distance) {
         return buckets[bucketIndexFromDistance(distance)];
     }
-    public static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
+    private static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
         for (int i = 0; i < 64; i++) {
             if (distance <= ((1L << i) - 1)) {
                 return i;
@@ -491,10 +491,9 @@ public class Kademlia {
                     conn.doListen();
                 } catch (IOException ex) {
                     connections.remove(conn);
-                    conn.isStillRunning = false;
+                    conn.close();
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                     console.log("Error with connection " + conn + ", removing from list");
-                    ConnectionGUITab.stoppedConnection(conn.node.nodeid);
                     //heyThisNodeIsBeingAnnoying(other);
                     //for an error with a connection, don't delete the node
                     //but if reconnect fails, block that sucker

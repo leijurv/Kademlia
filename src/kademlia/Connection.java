@@ -10,7 +10,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -22,14 +21,13 @@ import java.util.logging.Logger;
  */
 public class Connection {
     public final Node node;
-    public final Socket socket;
-    public final DataInputStream in;
-    public final DataOutputStream out;
-    public static SecureRandom sc = new SecureRandom();
-    public final HashMap<Long, Request> pendingRequests;
+    private final Socket socket;
+    private final DataInputStream in;
+    private final DataOutputStream out;
+    private final HashMap<Long, Request> pendingRequests;
     public final Kademlia kademliaRef;
     private final Object outLock = new Object();
-    public boolean isStillRunning = true;
+    private volatile boolean isStillRunning = true;
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
@@ -48,20 +46,12 @@ public class Connection {
                         RequestPing rp = new RequestPing();
                         if (!sendRequest(rp)) {
                             console.log("SEND FAILED. PING FAILED.");
-                            isStillRunning = false;
-                            socket.close();
-                            return;
-                        }
-                        Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
-                        if (!isStillRunning || isRequestStillPending(rp)) {
-                            console.log("TOOK MORE THAN TEN SECONDS TO RESPOND. PING FAILED.");
-                            isStillRunning = false;
-                            socket.close();
+                            Connection.this.close();
                             return;
                         }
                         Thread.sleep(kademliaRef.settings.pingIntervalSec * 1000 + rand.nextInt(kademliaRef.settings.pingIntervalSec * 100));//randomness. dont both ping each other at the exact same time.
                     }
-                } catch (InterruptedException | IOException ex) {
+                } catch (InterruptedException ex) {
                     Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -75,6 +65,7 @@ public class Connection {
     }
     public boolean sendRequest(Request r) {
         if (!isStillRunning) {
+            r.onError(this);
             throw new IllegalStateException("ur high");
         }
         pendingRequests.put(r.requestID, r);
@@ -88,13 +79,55 @@ public class Connection {
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Sent request " + r + " to " + node);
             }
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
+                        if (!isStillRunning || isRequestStillPending(r)) {
+                            console.log(this + " TOOK MORE THAN " + kademliaRef.settings.pingTimeoutSec + " SECONDS TO RESPOND TO" + r + ". CLOSING CONNECTION.");
+                            Connection.this.close();
+                            //dont call r.onError here because closing the connection will do it and we dont want duplicate calls
+                            //because in some cases r.onError will trigger lookup.execute and we don't want duplicates of that
+                        }
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }.start();
             return true;
         } catch (IOException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            console.log("Exception while sending request");
+            console.log("Exception while sending request " + r);
+            r.onError(this);
+            //technically I'm pretty sure that an IOException here means that the entire connection is closed...
+            //TODO
             pendingRequests.remove(r.requestID);
             return false;
         }
+    }
+    public boolean isStillRunning() {
+        return isStillRunning;
+    }
+    public void close() {
+        kademliaRef.connections.remove(this);//MUY MUY importante
+        if (!isStillRunning) {
+            console.log("im already closed, leave me alone " + this);
+            return;
+        }
+        isStillRunning = false;
+        try {
+            socket.close();//this will trigger a cascade of IOExceptions. MUAHAHAHAHAHHA
+        } catch (IOException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        for (long requestid : pendingRequests.keySet()) {
+            pendingRequests.get(requestid).onError(this);
+        }
+        pendingRequests.clear();//this is actually fairly crucial
+        //if this weren't here we would have hella memory leaks
+        //because some of the requests contain references to lookup objects / storeddata objects
+        ConnectionGUITab.stoppedConnection(node.nodeid);//LESS LESS importante
     }
     private void readMessage() throws IOException {
         boolean isResp = in.readBoolean();
@@ -102,7 +135,7 @@ public class Connection {
             long requestID = in.readLong();
             Request r = pendingRequests.remove(requestID);
             if (r == null) {
-                throw new IOException("Sent response ID " + requestID + " for nonexistant request");
+                throw new IOException("Received response ID " + requestID + " for nonexistant request");
             }
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left");
@@ -128,6 +161,7 @@ public class Connection {
                         }
                     } catch (IOException ex) {
                         Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+                        //dont call r.onError because this is the server side lol
                     }
                 }
             }.start();

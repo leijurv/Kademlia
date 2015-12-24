@@ -30,4 +30,7 @@ public class RequestPing extends Request {
     public void onResponse(DataInputStream in, Connection conn) throws IOException {
         conn.node.lastSuccessfulDataTransfer = System.currentTimeMillis();
     }
+    @Override
+    public void onError(Connection conn) {
+    }
 }

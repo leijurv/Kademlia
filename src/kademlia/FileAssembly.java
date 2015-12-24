@@ -21,10 +21,10 @@ import java.util.zip.InflaterOutputStream;
  * @author leijurv
  */
 public class FileAssembly {
-    final long[] hashes;
-    final byte[][] parts;
-    final Kademlia kademliaRef;
-    final String storageLocation;
+    private final long[] hashes;
+    private final byte[][] parts;
+    private final Kademlia kademliaRef;
+    private final String storageLocation;
     public FileAssembly(byte[] header, Kademlia kademliaRef, String storageLocation) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(header));
         int size = in.readInt();

@@ -14,11 +14,11 @@ import java.io.IOException;
  * @author leijurv
  */
 public class RequestStore extends Request {
-    final long key;
-    final byte[] value;
-    final long lastModified;
-    final int offset;
-    final int length;
+    private final long key;
+    private final byte[] value;
+    private final long lastModified;
+    private final int offset;
+    private final int length;
     public RequestStore(long key, byte[] value, long lastModified, int offset, int length) {
         super((byte) 1);
         this.key = key;
@@ -52,5 +52,9 @@ public class RequestStore extends Request {
     }
     @Override
     public void onResponse(DataInputStream in, Connection conn) throws IOException {
+    }
+    @Override
+    public void onError(Connection conn) {
+        console.log("Failed to put " + key + " into node " + conn);
     }
 }
