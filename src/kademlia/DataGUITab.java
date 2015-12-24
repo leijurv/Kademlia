@@ -100,15 +100,29 @@ public class DataGUITab extends Tab {
         table.getColumns().addAll(keyCol, valCol);
         table.setItems(keyValueDataList);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        Runnable getBytesForLabel = () -> {
+        Runnable updateTable = () -> {
             Platform.runLater(() -> {
                 for (int i = 0; i < keyValueDataList.size(); i++) {
                     kad.get(keyValueDataList.get(i).getKey());
                 }
             });
         };
-        executor.scheduleAtFixedRate(getBytesForLabel, 0, kad.settings.updateIntervalSec, TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(updateTable, 0, kad.settings.updateIntervalSec, TimeUnit.SECONDS);
         grid.add(table, 0, 0, 10, 5);
+
+        /* REFRESH TABLE*/
+        //Button
+        Button refreshBtn = new Button();
+        refreshBtn.setText("Refresh Table");
+        refreshBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                for (int i = 0; i < keyValueDataList.size(); i++) {
+                    kad.get(keyValueDataList.get(i).getKey());
+                }
+            }
+        });
+        grid.add(refreshBtn, 8, 5, 2, 1);
 
         keyHashLookup = new HashMap();
 
@@ -116,7 +130,7 @@ public class DataGUITab extends Tab {
         //TextField
         TextField getKeyTextField = new TextField();
         getKeyTextField.setPromptText("Key");
-        grid.add(getKeyTextField, 0, 5, 3, 1);
+        grid.add(getKeyTextField, 0, 6, 3, 1);
         //Button
         Button getBtn = new Button();
         getBtn.setText("Get Value");
@@ -131,16 +145,16 @@ public class DataGUITab extends Tab {
                 getKeyTextField.clear();
             }
         });
-        grid.add(getBtn, 3, 5);
+        grid.add(getBtn, 3, 6);
         /* PUT */
         //TextField
         TextField putKeyTextField = new TextField();
         putKeyTextField.setPromptText("Key");
-        grid.add(putKeyTextField, 5, 5, 1, 1);
+        grid.add(putKeyTextField, 5, 6, 1, 1);
         //TextField
         TextField putValueTextField = new TextField();
         putValueTextField.setPromptText("Value");
-        grid.add(putValueTextField, 6, 5, 2, 1);
+        grid.add(putValueTextField, 6, 6, 2, 1);
         //Button
         Button putBtn = new Button();
         putBtn.setText("Put Key/Value");
@@ -157,12 +171,12 @@ public class DataGUITab extends Tab {
                 putValueTextField.clear();
             }
         });
-        grid.add(putBtn, 8, 5, 2, 1);
+        grid.add(putBtn, 8, 6, 2, 1);
         /* PUT FILE */
         //TextField
         TextField putFileKeyTextField = new TextField();
         putFileKeyTextField.setPromptText("Key");
-        grid.add(putFileKeyTextField, 5, 7, 3, 1);
+        grid.add(putFileKeyTextField, 5, 8, 3, 1);
         //Button
         Button putFileBtn = new Button();
         putFileBtn.setText("Put File");
@@ -186,12 +200,12 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        grid.add(putFileBtn, 8, 7);
+        grid.add(putFileBtn, 8, 8);
         /* GET FILE */
         //TextField
         TextField getFileKeyTextField = new TextField();
         getFileKeyTextField.setPromptText("Key");
-        grid.add(getFileKeyTextField, 0, 7, 3, 1);
+        grid.add(getFileKeyTextField, 0, 8, 3, 1);
         //Button
         Button getFileBtn = new Button();
         getFileBtn.setText("Get File");
@@ -215,7 +229,7 @@ public class DataGUITab extends Tab {
                 }
             }
         });
-        grid.add(getFileBtn, 3, 7);
+        grid.add(getFileBtn, 3, 8);
         /* Progress Bar */
         fileProgressBar = new ProgressBar();
         fileProgressBar.setProgress(0);
