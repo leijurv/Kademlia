@@ -61,7 +61,6 @@ public class ControlSocket {
                                                 String result = "result";
                                                 out.writeInt(id);
                                                 out.writeInt(result.getBytes().length);
-                                                System.out.println(result.getBytes().length);
                                                 out.write(result.getBytes());
                                                 break;
                                             case 2:

@@ -9,16 +9,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 /**
@@ -99,6 +107,18 @@ public class NodeInfoGUITab extends Tab {
             });
         };
         executor.scheduleAtFixedRate(getBytesForLabel, 0, 1, TimeUnit.SECONDS);
+
+        Button purgeRAMButton = new Button();
+        purgeRAMButton.setText("Flush RAM");
+        purgeRAMButton.setTextFill(Color.WHITE);
+        purgeRAMButton.setBackground(new Background(new BackgroundFill(Color.RED, CornerRadii.EMPTY, Insets.EMPTY)));
+        purgeRAMButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                kad.storedData.flushRAM();
+            }
+        });
+        grid.add(purgeRAMButton, 0, 5);
 
         //Tab
         this.setContent(grid);
