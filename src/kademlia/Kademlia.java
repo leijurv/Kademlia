@@ -40,6 +40,7 @@ public class Kademlia {
     static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
+    static public boolean noGUI = false;
     int progress = 0;
     int max = 0;
 
@@ -81,7 +82,7 @@ public class Kademlia {
             if (cmd.hasOption("P")) {
                 csPort = Integer.parseInt(cmd.getOptionValue("P"));
             }
-            ControlSocket controlSocket = new ControlSocket(csPort);
+            ControlSocket controlSocket = new ControlSocket(csPort, kad);
         }
         if (!cmd.hasOption("G")) {
             new Thread() {
@@ -90,6 +91,8 @@ public class Kademlia {
                     GUI.main(args, kad);
                 }
             }.start();
+        } else {
+            noGUI = false;
         }
         if (cmd.hasOption("C")) {
             Scanner scan = new Scanner(System.in);

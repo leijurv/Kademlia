@@ -17,6 +17,7 @@ import java.util.logging.Logger;
  * @author leijurv
  */
 public class Lookup {
+
     final long key;
     final Kademlia kademliaRef;
     byte[] value = null;
@@ -31,9 +32,11 @@ public class Lookup {
     FileAssembly assembly = null;
     String storageLocation = null;
     long lastMod = 0;
+
     public static long hash(byte[] o) {
         return hash(o, 0, o.length);
     }
+
     public static long hash(byte[] o, int offset, int length) {
         MessageDigest md;
         try {
@@ -51,9 +54,11 @@ public class Lookup {
         }
         return Math.abs(h);
     }
+
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(key, kademliaRef, contents, lastModified, 0, contents.length);
     }
+
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified, int offset, int length) {
         this(key, kademliaRef, false);
         contentsToPut = contents;
@@ -61,26 +66,32 @@ public class Lookup {
         this.contOffset = offset;
         this.contLen = length;
     }
+
     public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(hash(path.getBytes()), kademliaRef, contents, lastModified);
     }
+
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
         assembly = f;
     }
+
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
     }
+
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
         this.needsToAssemble = assemble;
         this.storageLocation = storageLocation;
     }
+
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup) {
         this.key = key;
         this.kademliaRef = kademliaRef;
         this.isKeyLookup = isKeyLookup;
     }
+
     public Node popFirstNonUsed() {
         for (Node n : closest) {
             if (!alreadyAsked.contains(n) && !kademliaRef.myself.equals(n)) {
@@ -89,6 +100,7 @@ public class Lookup {
         }
         return null;
     }
+
     public boolean isLookupFinished() {
         if (isKeyLookup) {
             return value != null;
@@ -96,6 +108,7 @@ public class Lookup {
             return finalResult != null;
         }
     }
+
     public void execute() {
         if (closest == null) {
             if (Kademlia.verbose) {
@@ -151,10 +164,14 @@ public class Lookup {
                         if (kademliaRef.progress == kademliaRef.max) {
                             console.log("All done storing");
                             kademliaRef.max = 0;
-                            DataGUITab.updateProgressBar(1);
+                            if (!Kademlia.noGUI) {
+                                DataGUITab.updateProgressBar(1);
+                            }
                         } else {
                             final float progressPercentage = ((float) (kademliaRef.progress)) / ((float) (kademliaRef.max));
-                            DataGUITab.updateProgressBar(progressPercentage);
+                            if (!Kademlia.noGUI) {
+                                DataGUITab.updateProgressBar(progressPercentage);
+                            }
                             final int width = 50; // progress bar width in chars
                             System.out.print("\r[");
                             int i = 0;
@@ -187,6 +204,7 @@ public class Lookup {
             conn.sendRequest(new RequestFindNode(this));
         }
     }
+
     public void foundNodes(ArrayList<Node> nodes) {
         if (isLookupFinished()) {
             return;
@@ -232,10 +250,12 @@ public class Lookup {
             execute();
         }
     }
+
     public void foundValue(byte[] value) {
         this.value = value;
         onCompletion();
     }
+
     public void onCompletion() {
         if (needsToAssemble) {
             console.log("Received metadata. Starting assembly...");
@@ -255,7 +275,9 @@ public class Lookup {
             assembly.onPartCompleted(key, value, true);
             return;
         }
-        DataGUITab.incomingKeyValueData(key, value);
+        if (!Kademlia.noGUI) {
+            DataGUITab.incomingKeyValueData(key, value);
+        }
         console.log((isKeyLookup ? new String(value) : finalResult));
     }
 }

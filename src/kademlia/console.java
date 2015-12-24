@@ -15,13 +15,17 @@ public class console {
         if (!Kademlia.silent) {
             System.out.println(message);
         }
-        DebugGUITab.addLog(message.toString());
+        if (!Kademlia.noGUI) {
+            DebugGUITab.addLog(message.toString());
+        }
     }
 
     public static void log() {
         if (!Kademlia.silent) {
             System.out.println();
         }
-        DebugGUITab.addLog("");
+        if (!Kademlia.noGUI) {
+            DebugGUITab.addLog("");
+        }
     }
 }
