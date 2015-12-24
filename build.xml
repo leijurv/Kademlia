@@ -13,12 +13,13 @@
     <taskdef name="bundleapp"
              classname="com.oracle.appbundler.AppBundlerTask"   
              classpath="lib/appbundler-1.0.jar" />
-    <target name="bundle-kademlia">
+    <target name="bundle-macosx">
         <bundleapp outputdirectory="dist"
-            name="kademlia"
+            name="Kademlia"
             displayname="Kademlia"
             identifier="kademlia.Kademlia"
             mainclassname="kademlia.Kademlia">
+            <classpath dir="lib" includes="commons-cli-1.3.1.jar" />
             <classpath file="dist/Kademlia.jar" />
         </bundleapp>
     </target>
