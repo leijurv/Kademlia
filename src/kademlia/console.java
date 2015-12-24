@@ -10,12 +10,18 @@ package kademlia;
  * @author aidan
  */
 public class console {
+
     public static void log(Object message) {
-        System.out.println(message);
+        if (!Kademlia.silent) {
+            System.out.println(message);
+        }
         DebugGUITab.addLog(message.toString());
     }
+
     public static void log() {
-        System.out.println();
+        if (!Kademlia.silent) {
+            System.out.println();
+        }
         DebugGUITab.addLog("");
     }
 }
