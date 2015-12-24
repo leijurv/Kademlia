@@ -24,113 +24,160 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.DeflaterInputStream;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 /**
  *
  * @author leijurv
  */
 public class Kademlia {
+
     static final int k = 3;
     static public boolean verbose = false;
+    static public boolean silent = false;
+    static public boolean noGUI = false;
     int progress = 0;
     int max = 0;
+
     /**
      * @param args the command line arguments
      * @throws java.io.IOException
+     * @throws org.apache.commons.cli.ParseException
      */
-    public static void main(String[] args) throws IOException {
-        if (args.length > 1 && args[1].equals("-v")) {
+    public static void main(String[] args) throws IOException, ParseException {
+        Options options = new Options();
+        options.addOption("v", "verbose", false, "enables verbose mode");
+        options.addOption("p", "port", true, "sets port for communication with other nodes");
+        options.addOption("C", "enable-cli", false, "enables cli mode");
+        options.addOption("G", "disable-gui", false, "disables gui mode");
+        options.addOption("c", "control", false, "enables the control socket");
+        options.addOption("P", "control-port", true, "sets the port for the control socket");
+        options.addOption("s", "silent", false, "enables silent mode");
+        options.addOption("h", "help", false, "help");
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = parser.parse(options, args);
+        if (cmd.hasOption("h")) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp("kademlia", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("v")) {
             verbose = true;
         }
-        int myPort = (args.length < 1 || args[0].equals("-v")) ? 7705 : Integer.parseInt(args[0]);
+        if (cmd.hasOption("s")) {
+            silent = true;
+        }
+        int myPort = 7705;
+        if (cmd.hasOption("p")) {
+            myPort = Integer.parseInt(cmd.getOptionValue("p"));
+        }
         Kademlia kad = new Kademlia(myPort);
-        new Thread() {
-            @Override
-            public void run() {
-                GUI.main(args, kad);
+        if (cmd.hasOption("c")) {
+            int csPort = 7707;
+            if (cmd.hasOption("P")) {
+                csPort = Integer.parseInt(cmd.getOptionValue("P"));
             }
-        }.start();
-        Scanner scan = new Scanner(System.in);
-        while (true) {
-            try {
-                System.out.print("> ");
-                String command = scan.nextLine();
-                String com = command.split(" ")[0];
-                com = com.toLowerCase();
-                if (command.contains(" ")) {
-                    command = command.substring(command.indexOf(" ") + 1, command.length());
+            ControlSocket controlSocket = new ControlSocket(csPort, kad);
+        }
+        if (!cmd.hasOption("G")) {
+            new Thread() {
+                @Override
+                public void run() {
+                    GUI.main(args, kad);
                 }
-                switch (com) {
-                    case "connect":
-                        String host;
-                        int port;
-                        if (command.contains(" ")) {
-                            host = command.split(" ")[0];
-                            port = Integer.parseInt(command.split(" ")[1]);
-                        } else {
-                            host = "localhost";
-                            port = Integer.parseInt(command);
-                        }
-                        kad.handleSocket(new Socket(host, port));
-                        break;
-                    case "list":
-                        console.log(kad.connections);
-                        console.log(kad.storedData);
-                        break;
-                    case "get":
-                    case "getr":
-                        long d = com.equals("get") ? Lookup.hash(command.getBytes()) : Long.parseLong(command);
-                        console.log("Getting " + d);
-                        byte[] cached = kad.storedData.get(d);
-                        if (cached != null) {
-                            console.log("stored locally");
-                            DataGUITab.incomingKeyValueData(d, cached);
-                            console.log(new String(cached));
+            }.start();
+        } else {
+            noGUI = false;
+        }
+        if (cmd.hasOption("C")) {
+            Scanner scan = new Scanner(System.in);
+            while (true) {
+                try {
+                    System.out.print("> ");
+                    String command = scan.nextLine();
+                    String com = command.split(" ")[0];
+                    com = com.toLowerCase();
+                    if (command.contains(" ")) {
+                        command = command.substring(command.indexOf(" ") + 1, command.length());
+                    }
+                    switch (com) {
+                        case "connect":
+                            String host;
+                            int port;
+                            if (command.contains(" ")) {
+                                host = command.split(" ")[0];
+                                port = Integer.parseInt(command.split(" ")[1]);
+                            } else {
+                                host = "localhost";
+                                port = Integer.parseInt(command);
+                            }
+                            kad.handleSocket(new Socket(host, port));
                             break;
-                        }
-                        new Lookup(d, kad, true).execute();
-                        break;
-                    case "put":
-                        String path = command.substring(0, command.indexOf(" "));
-                        byte[] contents = command.substring(command.indexOf(" ") + 1, command.length()).getBytes();
-                        kad.put(path, contents);
-                        break;
-                    case "getfile":
-                        String storPath = command.split(" ")[1];
-                        String keyF = command.split(" ")[0];
-                        kad.getfile(keyF, storPath);
-                        break;
-                    case "putfile":
-                        String name = command.substring(0, command.indexOf(" "));
-                        String filepath = command.substring(command.indexOf(" ") + 1, command.length());
-                        kad.putfile(new File(filepath), name);
-                        break;
-                    case "help":
-                        console.log("HELP");
-                        console.log("*****");
-                        console.log("How to read:");
-                        console.log("() - optional arguments");
-                        console.log("[] - require arguments");
-                        console.log("*****");
-                        console.log("CONNECT (hostname) [port] - connect to a node");
-                        console.log("LIST - lists all connected nodes");
-                        console.log("GET [key] - gets value based on key");
-                        console.log("GETR [hash of key] - gets value based on hash of key");
-                        console.log("GETFILE [key] [path] - gets a file on the network based on key and stores it at the provided path");
-                        console.log("PUT [key] [value] - stores a value on the network");
-                        console.log("PUTFILE [key] [path] - stores a file on the network");
-                        console.log("HELP - gets help");
-                        console.log("EXIT - exits program");
-                        break;
-                    case "exit":
-                        System.exit(0);
+                        case "list":
+                            console.log(kad.connections);
+                            console.log(kad.storedData);
+                            break;
+                        case "get":
+                        case "getr":
+                            long d = com.equals("get") ? Lookup.hash(command.getBytes()) : Long.parseLong(command);
+                            console.log("Getting " + d);
+                            byte[] cached = kad.storedData.get(d);
+                            if (cached != null) {
+                                console.log("stored locally");
+                                DataGUITab.incomingKeyValueData(d, cached);
+                                console.log(new String(cached));
+                                break;
+                            }
+                            new Lookup(d, kad, true).execute();
+                            break;
+                        case "put":
+                            String path = command.substring(0, command.indexOf(" "));
+                            byte[] contents = command.substring(command.indexOf(" ") + 1, command.length()).getBytes();
+                            kad.put(path, contents);
+                            break;
+                        case "getfile":
+                            String storPath = command.split(" ")[1];
+                            String keyF = command.split(" ")[0];
+                            kad.getfile(keyF, storPath);
+                            break;
+                        case "putfile":
+                            String name = command.substring(0, command.indexOf(" "));
+                            String filepath = command.substring(command.indexOf(" ") + 1, command.length());
+                            kad.putfile(new File(filepath), name);
+                            break;
+                        case "help":
+                            console.log("HELP");
+                            console.log("*****");
+                            console.log("How to read:");
+                            console.log("() - optional arguments");
+                            console.log("[] - require arguments");
+                            console.log("*****");
+                            console.log("CONNECT (hostname) [port] - connect to a node");
+                            console.log("LIST - lists all connected nodes");
+                            console.log("GET [key] - gets value based on key");
+                            console.log("GETR [hash of key] - gets value based on hash of key");
+                            console.log("GETFILE [key] [path] - gets a file on the network based on key and stores it at the provided path");
+                            console.log("PUT [key] [value] - stores a value on the network");
+                            console.log("PUTFILE [key] [path] - stores a file on the network");
+                            console.log("HELP - gets help");
+                            console.log("EXIT - exits program");
+                            break;
+                        case "exit":
+                            System.exit(0);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    console.log("but we still good homie. keep on hitting me up with them requests");
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                console.log("but we still good homie. keep on hitting me up with them requests");
             }
         }
     }
+
     public static void test(String[] args) throws IOException, InterruptedException {
         Kademlia k1 = new Kademlia(5021);
         Kademlia k2 = new Kademlia(5022);
@@ -182,6 +229,7 @@ public class Kademlia {
     final String dataStorageDir;
     final Settings settings;
     private volatile boolean shouldSave = true;
+
     public Kademlia(int port) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
@@ -214,6 +262,7 @@ public class Kademlia {
         startSaveThread();
         startPingAllThread();
     }
+
     private void startPingAllThread() {
         new Thread() {
             @Override
@@ -224,9 +273,11 @@ public class Kademlia {
             }
         }.start();
     }
+
     public void heyYouShouldSaveSoon() {
         shouldSave = true;
     }
+
     private void startSaveThread() {
         new Thread() {
             @Override
@@ -245,6 +296,7 @@ public class Kademlia {
             }
         }.start();
     }
+
     private void writeToSave() throws IOException {
         console.log("Kademlia is writing to save file");
         try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
@@ -256,12 +308,15 @@ public class Kademlia {
             settings.write(out);
         }
     }
+
     private File getSaveFile() {
         return new File(dataStorageDir + "main");
     }
+
     public void getfile(String keyF, File storPath) throws IOException {
         getfile(keyF, storPath.getAbsolutePath());
     }
+
     public void getfile(String keyF, String storPath) throws IOException {
         console.log("Getting " + keyF + " and storing in " + storPath);
         byte[] caced = storedData.get(Lookup.hash(keyF.getBytes()));
@@ -272,6 +327,7 @@ public class Kademlia {
         }
         new Lookup(keyF, this, true, true, storPath).execute();
     }
+
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
         try (FileInputStream fileIn = new FileInputStream(file)) {
@@ -330,12 +386,15 @@ public class Kademlia {
             new Lookup(name, this, theData.toByteArray(), start).execute();
         }
     }
+
     public void put(long key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
+
     public void put(String key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
+
     public void get(String key) {
         long d = Lookup.hash(key.getBytes());
         console.log("Getting " + d);
@@ -348,6 +407,7 @@ public class Kademlia {
         }
         new Lookup(d, this, true).execute();
     }
+<<<<<<< HEAD
     private Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);
     }
@@ -355,6 +415,18 @@ public class Kademlia {
         return buckets[bucketIndexFromDistance(distance)];
     }
     private static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
+=======
+
+    public Bucket bucketFromNode(Node n) {
+        return bucketFromDistance(myself.nodeid ^ n.nodeid);
+    }
+
+    public Bucket bucketFromDistance(long distance) {
+        return buckets[bucketIndexFromDistance(distance)];
+    }
+
+    public static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
+>>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
         for (int i = 0; i < 64; i++) {
             if (distance <= ((1L << i) - 1)) {
                 return i;
@@ -362,6 +434,7 @@ public class Kademlia {
         }
         throw new IllegalStateException("your mom " + distance);
     }
+
     public void addOrUpdate(Node node) {
         if (node.equals(myself)) {
             if (Kademlia.verbose) {
@@ -377,6 +450,7 @@ public class Kademlia {
             }
         }
     }
+
     public void heyThisNodeIsBeingAnnoying(Node node) {
         if (node.equals(myself)) {
             throw new IllegalArgumentException("IM NOT ANNOYING");
@@ -385,6 +459,7 @@ public class Kademlia {
         bucket.removeNode(node);
         shouldSave = true;
     }
+
     public ArrayList<Node> findNClosest(int num, long search) {//less efficent, but works correctly
         /*ArrayList<Node> closest = new ArrayList<>();
          for (Bucket bucket : buckets) {
@@ -399,6 +474,7 @@ public class Kademlia {
         }
         return closest;
     }
+
     public ArrayList<Node> findNClosest1(int num, long search) {//this is a more efficient way to do it, but it doesn't quite work right
         ArrayList<Node> closest = new ArrayList<>();
         long currWorst = 0;
@@ -429,9 +505,11 @@ public class Kademlia {
         }
         return closest;
     }
+
     private void runKademlia() throws IOException {
         createMainServer();
     }
+
     private void createMainServer() throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
@@ -458,6 +536,7 @@ public class Kademlia {
             }
         }.start();
     }
+
     public Connection getConnectionToNode(Node n) {
         for (Connection conn : connections) {
             if (conn.node.nodeid == n.nodeid) {
@@ -466,6 +545,7 @@ public class Kademlia {
         }
         return null;
     }
+
     public Connection getOrCreateConnectionToNode(Node n) throws IOException {
         Connection already = getConnectionToNode(n);
         if (already != null) {
@@ -476,6 +556,7 @@ public class Kademlia {
         }
         return establishConnection(n);
     }
+
     public Connection handleSocket(Socket socket) throws IOException {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
@@ -504,6 +585,7 @@ public class Kademlia {
         connections.add(conn);
         return conn;
     }
+
     private Connection establishConnection(Node node) throws IOException {
         try {
             if (Kademlia.verbose) {
@@ -527,6 +609,7 @@ public class Kademlia {
             throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
         }
     }
+
     public static String whatIsMyIp() throws IOException {
         return InetAddress.getLocalHost().getHostAddress();
     }
