@@ -111,7 +111,7 @@ public class NodeInfoGUITab extends Tab {
         Button purgeRAMButton = new Button();
         purgeRAMButton.setText("Flush RAM");
         purgeRAMButton.setTextFill(Color.WHITE);
-        purgeRAMButton.setBackground(new Background(new BackgroundFill(Color.RED, CornerRadii.EMPTY, Insets.EMPTY)));
+        purgeRAMButton.setBackground(new Background(new BackgroundFill(Color.RED, new CornerRadii(5), Insets.EMPTY)));
         purgeRAMButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
