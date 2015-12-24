@@ -34,20 +34,22 @@ import javafx.stage.Stage;
  * @author aidan
  */
 public class ConnectionGUITab extends Tab {
+
     private static Kademlia kad;
     private static Circle selfCircle;
     private static HashMap<Long, CirclePath> connectionsCircle;
     private static Pane canvas;
     private static Stage primaryStage;
+
     ConnectionGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
-        
+
         this.primaryStage = primaryStage;
-        
+
         kad = kademliaRef;
         this.setText("Connections");
         this.setClosable(false);
-        
+
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -64,7 +66,7 @@ public class ConnectionGUITab extends Tab {
             grid.getRowConstraints().add(row);
         }
         connectionsCircle = new HashMap<>();
-        
+
         canvas = new Pane();
         selfCircle = new Circle(15, Color.BLUE);
         selfCircle.relocate(150, 150);
@@ -101,17 +103,18 @@ public class ConnectionGUITab extends Tab {
             }
         });
         grid.add(connectBtn, 4, 5);
-        
+
         //Tab
         this.setContent(grid);
     }
+
     public static void addConnection() {
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                //Circle circle = new Circle(10, Color.GREEN); 
+                //Circle circle = new Circle(10, Color.GREEN);
                 for (int i = 0; i < kad.connections.size(); i++) {
-                    float angle = (float) (2.0*Math.PI*(((float) i)/((float)kad.connections.size())));
+                    float angle = (float) (2.0 * Math.PI * (((float) i) / ((float) kad.connections.size())));
                     if (!connectionsCircle.containsKey(kad.connections.get(i).node.nodeid)) {
                         Path path = new Path();
                         Circle circle = new Circle(10, Color.GREEN);
@@ -119,19 +122,19 @@ public class ConnectionGUITab extends Tab {
                         Tooltip.install(circle, tp);
 
                         /*circle.setOnMouseEntered(new EventHandler<MouseEvent>() {
-                            @Override
-                            public void handle(MouseEvent t) {
-                                javafx.scene.Node node = (javafx.scene.Node) t.getSource();
-                                tp.show(node, primaryStage.getX() + t.getSceneX(), primaryStage.getY() + t.getSceneY());
-                            }
-                        });*/
+                         @Override
+                         public void handle(MouseEvent t) {
+                         javafx.scene.Node node = (javafx.scene.Node) t.getSource();
+                         tp.show(node, primaryStage.getX() + t.getSceneX(), primaryStage.getY() + t.getSceneY());
+                         }
+                         });*/
                         connectionsCircle.put(kad.connections.get(i).node.nodeid, new CirclePath(circle, path));
                         canvas.getChildren().add(connectionsCircle.get(kad.connections.get(i).node.nodeid).circle);
                         canvas.getChildren().add(connectionsCircle.get(kad.connections.get(i).node.nodeid).path);
                     }
                     double xCoord = (Math.cos(angle) * 100 + 165) - 10;
                     double yCoord = (Math.sin(angle) * 100 + 165) - 10;
-                    
+
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).circle.relocate(xCoord, yCoord);
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).path.getElements().clear();
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).path.getElements().add(new MoveTo(165, 165));
@@ -142,11 +145,13 @@ public class ConnectionGUITab extends Tab {
             }
         });
     }
+
     public static void stoppedConnection(long nodeid) {
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                connectionsCircle.get(nodeid).circle.setFill(Color.RED);
+                canvas.getChildren().remove(connectionsCircle.get(nodeid).circle);
+                canvas.getChildren().remove(connectionsCircle.get(nodeid).path);
             }
         });
     }
