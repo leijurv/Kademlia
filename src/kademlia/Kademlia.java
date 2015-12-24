@@ -36,14 +36,12 @@ import org.apache.commons.cli.ParseException;
  * @author leijurv
  */
 public class Kademlia {
-
     static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
     static public boolean noGUI = false;
     int progress = 0;
     int max = 0;
-
     /**
      * @param args the command line arguments
      * @throws java.io.IOException
@@ -177,7 +175,6 @@ public class Kademlia {
             }
         }
     }
-
     public static void test(String[] args) throws IOException, InterruptedException {
         Kademlia k1 = new Kademlia(5021);
         Kademlia k2 = new Kademlia(5022);
@@ -229,7 +226,6 @@ public class Kademlia {
     final String dataStorageDir;
     final Settings settings;
     private volatile boolean shouldSave = true;
-
     public Kademlia(int port) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
@@ -262,7 +258,6 @@ public class Kademlia {
         startSaveThread();
         startPingAllThread();
     }
-
     private void startPingAllThread() {
         new Thread() {
             @Override
@@ -273,11 +268,9 @@ public class Kademlia {
             }
         }.start();
     }
-
     public void heyYouShouldSaveSoon() {
         shouldSave = true;
     }
-
     private void startSaveThread() {
         new Thread() {
             @Override
@@ -296,7 +289,6 @@ public class Kademlia {
             }
         }.start();
     }
-
     private void writeToSave() throws IOException {
         console.log("Kademlia is writing to save file");
         try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
@@ -308,15 +300,12 @@ public class Kademlia {
             settings.write(out);
         }
     }
-
     private File getSaveFile() {
         return new File(dataStorageDir + "main");
     }
-
     public void getfile(String keyF, File storPath) throws IOException {
         getfile(keyF, storPath.getAbsolutePath());
     }
-
     public void getfile(String keyF, String storPath) throws IOException {
         console.log("Getting " + keyF + " and storing in " + storPath);
         byte[] caced = storedData.get(Lookup.hash(keyF.getBytes()));
@@ -327,7 +316,6 @@ public class Kademlia {
         }
         new Lookup(keyF, this, true, true, storPath).execute();
     }
-
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
         try (FileInputStream fileIn = new FileInputStream(file)) {
@@ -386,15 +374,12 @@ public class Kademlia {
             new Lookup(name, this, theData.toByteArray(), start).execute();
         }
     }
-
     public void put(long key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
-
     public void put(String key, byte[] contents) {
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
-
     public void get(String key) {
         long d = Lookup.hash(key.getBytes());
         console.log("Getting " + d);
@@ -407,7 +392,6 @@ public class Kademlia {
         }
         new Lookup(d, this, true).execute();
     }
-<<<<<<< HEAD
     private Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);
     }
@@ -415,18 +399,6 @@ public class Kademlia {
         return buckets[bucketIndexFromDistance(distance)];
     }
     private static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
-=======
-
-    public Bucket bucketFromNode(Node n) {
-        return bucketFromDistance(myself.nodeid ^ n.nodeid);
-    }
-
-    public Bucket bucketFromDistance(long distance) {
-        return buckets[bucketIndexFromDistance(distance)];
-    }
-
-    public static int bucketIndexFromDistance(long distance) {//todo replace with bsearch (low priority)
->>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
         for (int i = 0; i < 64; i++) {
             if (distance <= ((1L << i) - 1)) {
                 return i;
@@ -434,7 +406,6 @@ public class Kademlia {
         }
         throw new IllegalStateException("your mom " + distance);
     }
-
     public void addOrUpdate(Node node) {
         if (node.equals(myself)) {
             if (Kademlia.verbose) {
@@ -450,7 +421,6 @@ public class Kademlia {
             }
         }
     }
-
     public void heyThisNodeIsBeingAnnoying(Node node) {
         if (node.equals(myself)) {
             throw new IllegalArgumentException("IM NOT ANNOYING");
@@ -459,7 +429,6 @@ public class Kademlia {
         bucket.removeNode(node);
         shouldSave = true;
     }
-
     public ArrayList<Node> findNClosest(int num, long search) {//less efficent, but works correctly
         /*ArrayList<Node> closest = new ArrayList<>();
          for (Bucket bucket : buckets) {
@@ -474,7 +443,6 @@ public class Kademlia {
         }
         return closest;
     }
-
     public ArrayList<Node> findNClosest1(int num, long search) {//this is a more efficient way to do it, but it doesn't quite work right
         ArrayList<Node> closest = new ArrayList<>();
         long currWorst = 0;
@@ -505,11 +473,9 @@ public class Kademlia {
         }
         return closest;
     }
-
     private void runKademlia() throws IOException {
         createMainServer();
     }
-
     private void createMainServer() throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
@@ -536,7 +502,6 @@ public class Kademlia {
             }
         }.start();
     }
-
     public Connection getConnectionToNode(Node n) {
         for (Connection conn : connections) {
             if (conn.node.nodeid == n.nodeid) {
@@ -545,7 +510,6 @@ public class Kademlia {
         }
         return null;
     }
-
     public Connection getOrCreateConnectionToNode(Node n) throws IOException {
         Connection already = getConnectionToNode(n);
         if (already != null) {
@@ -556,7 +520,6 @@ public class Kademlia {
         }
         return establishConnection(n);
     }
-
     public Connection handleSocket(Socket socket) throws IOException {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
@@ -585,7 +548,6 @@ public class Kademlia {
         connections.add(conn);
         return conn;
     }
-
     private Connection establishConnection(Node node) throws IOException {
         try {
             if (Kademlia.verbose) {
@@ -609,7 +571,6 @@ public class Kademlia {
             throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
         }
     }
-
     public static String whatIsMyIp() throws IOException {
         return InetAddress.getLocalHost().getHostAddress();
     }

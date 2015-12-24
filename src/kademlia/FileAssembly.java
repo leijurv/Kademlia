@@ -21,19 +21,10 @@ import java.util.zip.InflaterOutputStream;
  * @author leijurv
  */
 public class FileAssembly {
-<<<<<<< HEAD
     private final long[] hashes;
     private final byte[][] parts;
     private final Kademlia kademliaRef;
     private final String storageLocation;
-=======
-
-    final long[] hashes;
-    final byte[][] parts;
-    final Kademlia kademliaRef;
-    final String storageLocation;
-
->>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
     public FileAssembly(byte[] header, Kademlia kademliaRef, String storageLocation) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(header));
         int size = in.readInt();
@@ -47,7 +38,6 @@ public class FileAssembly {
         this.kademliaRef = kademliaRef;
         this.storageLocation = storageLocation;
     }
-
     public void assemble() {
         HashSet<Long> uniqueh = new HashSet<>();
         for (int i = 0; i < hashes.length; i++) {
@@ -71,7 +61,6 @@ public class FileAssembly {
             }.start();
         }
     }
-
     public void onPartCompleted(long key, byte[] contents, boolean t) {
         long partHash = Lookup.hash(contents);
         if (partHash != key) {
@@ -101,7 +90,6 @@ public class FileAssembly {
             Logger.getLogger(FileAssembly.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
     private void onPartCompleted1(long key, byte[] contents, boolean t) {
         int encounters = 0;
         for (int i = 0; i < hashes.length; i++) {

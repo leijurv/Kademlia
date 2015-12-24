@@ -17,9 +17,7 @@ import java.util.logging.Logger;
  * @author leijurv
  */
 public class Lookup {
-
     final long key;
-<<<<<<< HEAD
     private final Kademlia kademliaRef;
     private byte[] value = null;
     private ArrayList<Node> closest;
@@ -34,26 +32,9 @@ public class Lookup {
     private final String storageLocation;
     private final long lastMod;
     private final StoredData storedData;
-=======
-    final Kademlia kademliaRef;
-    byte[] value = null;
-    ArrayList<Node> closest = null;
-    ArrayList<Node> alreadyAsked = new ArrayList<>();
-    final boolean isKeyLookup;
-    Node finalResult;
-    byte[] contentsToPut = null;
-    int contOffset = 0;
-    int contLen = 0;
-    boolean needsToAssemble = false;
-    FileAssembly assembly = null;
-    String storageLocation = null;
-    long lastMod = 0;
-
->>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
     public static long hash(byte[] o) {
         return hash(o, 0, o.length);
     }
-
     public static long hash(byte[] o, int offset, int length) {
         MessageDigest md;
         try {
@@ -71,7 +52,6 @@ public class Lookup {
         }
         return Math.abs(h);
     }
-<<<<<<< HEAD
     public Lookup(long key, Kademlia kademliaRef, StoredData data) {
         this.contLen = 0;
         this.contentsToPut = null;
@@ -86,39 +66,30 @@ public class Lookup {
         this.key = key;
         this.kademliaRef = kademliaRef;
     }
-=======
-
->>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(key, kademliaRef, contents, lastModified, 0, contents.length);
         this.closest = null;
     }
-
     public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified, int offset, int length) {
         this(key, kademliaRef, false);
         this.closest = null;
     }
-
     public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
         this(hash(path.getBytes()), kademliaRef, contents, lastModified);
         this.closest = null;
     }
-
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
         this.closest = null;
     }
-
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
         this.closest = null;
     }
-
     public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
         this(hash(path.getBytes()), kademliaRef, isKeyLookup);
         this.closest = null;
     }
-
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup) {
         this.contLen = 0;
         this.contentsToPut = null;
@@ -133,7 +104,6 @@ public class Lookup {
         this.kademliaRef = kademliaRef;
         this.isKeyLookup = isKeyLookup;
     }
-
     public Node popFirstNonUsed() {
         for (Node n : closest) {
             if (!alreadyAsked.contains(n) && !kademliaRef.myself.equals(n)) {
@@ -142,7 +112,6 @@ public class Lookup {
         }
         return null;
     }
-
     public boolean isLookupFinished() {
         if (isKeyLookup) {
             return value != null;
@@ -150,7 +119,6 @@ public class Lookup {
             return finalResult != null;
         }
     }
-
     public void execute() {
         if (closest == null) {
             if (Kademlia.verbose) {
@@ -257,7 +225,6 @@ public class Lookup {
             conn.sendRequest(new RequestFindNode(this));
         }
     }
-
     public void foundNodes(ArrayList<Node> nodes) {
         if (isLookupFinished()) {
             return;
@@ -303,20 +270,15 @@ public class Lookup {
             execute();
         }
     }
-<<<<<<< HEAD
     public void onConnectionError() {
         if (!isLookupFinished()) {
             execute();//if there was an error with one of the requests but we aren't done, try try again
         }
     }
-=======
-
->>>>>>> fac89cbb463aec5e3f508357a8017b9f141a5720
     public void foundValue(byte[] value) {
         this.value = value;
         onCompletion();
     }
-
     public void onCompletion() {
         if (needsToAssemble) {
             console.log("Received metadata. Starting assembly...");
