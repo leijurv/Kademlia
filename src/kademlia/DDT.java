@@ -22,7 +22,7 @@ public enum DDT {
                 return ddt;
             }
         }
-        return null;
+        throw new IllegalStateException("bad mask");
     }
     public long mask(long k) {
         return (k & ~0xff) | mask;
