@@ -492,6 +492,12 @@ public class Kademlia {
                                     handleSocket(socket);
                                 } catch (IOException ex) {
                                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+                                } finally {
+                                    try {
+                                        socket.close();
+                                    } catch (IOException ex1) {
+                                        Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex1);
+                                    }
                                 }
                             }
                         }.start();
