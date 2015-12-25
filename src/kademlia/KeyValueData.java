@@ -23,13 +23,13 @@ public class KeyValueData {
         this.value = new SimpleStringProperty(new String(value));
     }
     public KeyValueData(String key, String value) {
-        this.rawKey = Lookup.hash(key.getBytes());
+        this.rawKey = Lookup.maskedHash(key.getBytes(), DDT.STANDARD_PUT_GET);
         this.rawValue = value.getBytes();
         this.key = new SimpleStringProperty(key + "");
         this.value = new SimpleStringProperty(value);
     }
     public KeyValueData(String key, byte[] value) {
-        this.rawKey = Lookup.hash(key.getBytes());
+        this.rawKey = Lookup.maskedHash(key.getBytes(), DDT.STANDARD_PUT_GET);
         this.rawValue = value;
         this.key = new SimpleStringProperty(key + "");
         this.value = new SimpleStringProperty(new String(value));

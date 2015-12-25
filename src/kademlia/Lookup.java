@@ -32,10 +32,17 @@ public class Lookup {
     private String storageLocation;
     private long lastMod;
     private final StoredData storedData;
-    public static long hash(byte[] o) {
-        return hash(o, 0, o.length);
+    public static long maskedHash(byte[] o, DDT ddt) {
+        return maskedHash(o, 0, o.length, ddt);
     }
-    public static long hash(byte[] o, int offset, int length) {
+    public static long maskedHash(byte[] o, int offset, int length, DDT ddt) {
+        return ddt.mask(unmaskedHash(o, offset, length));
+    }
+    public static long unmaskedHash(byte[] o) {
+        console.log("someone's being a naughty nellie and getting an unmasked hash");
+        return unmaskedHash(o, 0, o.length);
+    }
+    private static long unmaskedHash(byte[] o, int offset, int length) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-1");
@@ -76,20 +83,20 @@ public class Lookup {
         this.contOffset = offset;
         this.contLen = length;
     }
-    public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
-        this(hash(path.getBytes()), kademliaRef, contents, lastModified);
-    }
+    /*public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
+     this(hash(path.getBytes()), kademliaRef, contents, lastModified);
+     }*/
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
         this.assembly = f;
         this.closest = null;
     }
-    public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
-        this(hash(path.getBytes()), kademliaRef, isKeyLookup);
-        this.closest = null;
-    }
-    public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
-        this(hash(path.getBytes()), kademliaRef, isKeyLookup);
+    /*public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
+     this(hash(path.getBytes()), kademliaRef, isKeyLookup);
+     this.closest = null;
+     }*/
+    public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
+        this(key, kademliaRef, isKeyLookup);
         this.closest = null;
         this.storageLocation = storageLocation;
         this.needsToAssemble = assemble;

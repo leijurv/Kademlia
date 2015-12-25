@@ -21,6 +21,7 @@ import java.util.logging.Logger;
  */
 public class StoredData {
     final long key;
+    final DDT ddt;
     byte[] data;
     long hash;
     long lastModified;
@@ -44,14 +45,16 @@ public class StoredData {
         this.lastModified = in.readLong();
         this.lastRetreived = in.readLong();
         this.data = null;
+        this.ddt = DDT.getFromMask(key);
         startThread();
     }
     public StoredData(long key, byte[] data, long lastModified, DataStore dataStoreRef) {
         this.dataStoreRef = dataStoreRef;
         this.key = key;
+        this.ddt = DDT.getFromMask(key);
         this.size = data.length;
         this.data = data;
-        this.hash = Lookup.hash(data);
+        this.hash = Lookup.unmaskedHash(data);
         this.lastModified = lastModified;
         this.lastRetreived = 0;
         startThread();
@@ -77,9 +80,13 @@ public class StoredData {
                         throw new IllegalStateException("kush");
                     }
                     data = temp;
-                    long checksum = Lookup.hash(data);
+                    long checksum = Lookup.unmaskedHash(data);
                     if (checksum != hash) {
-                        System.out.println("Did read from disk. Expected hash: " + hash + ". Real hash: " + checksum);
+                        String yolo = "Did read from disk. Expected hash: " + hash + ". Real hash: " + checksum + ". DDT: " + ddt;
+                        console.log(yolo);
+                        if (ddt == DDT.CHUNK) {
+                            throw new IllegalStateException(yolo);
+                        }
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
@@ -94,7 +101,7 @@ public class StoredData {
         synchronized (lock) {
             this.data = newData;
             this.size = newData.length;
-            this.hash = Lookup.hash(newData);
+            this.hash = Lookup.unmaskedHash(newData);
             this.lastModified = lastModified;
         }
         beginSave();

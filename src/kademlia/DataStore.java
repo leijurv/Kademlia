@@ -117,8 +117,12 @@ public class DataStore {
         }
     }
     public void put(long key, byte[] value, long lastModified) {
-        long hash = Lookup.hash(value);
-        console.log((key != hash ? "BAD HASH" : "GOOD KUSH") + " Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified);
+        DDT ddt = DDT.getFromMask(key);
+        long hash = Lookup.maskedHash(value, DDT.CHUNK);
+        if (key != hash && ddt == DDT.CHUNK) {
+            console.log("THIS IS BAD BB. DDT IS CHUNK BUT IT DONT MATCH");
+        }
+        console.log((key != hash ? "BAD HASH" : "GOOD KUSH") + " Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified + " and DDT " + ddt);
         synchronized (lock) {
             if (hasKey(key)) {
                 StoredData data = storedData.get(key);

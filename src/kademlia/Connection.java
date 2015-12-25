@@ -110,6 +110,7 @@ public class Connection {
         return isStillRunning;
     }
     public void close() {
+        console.log(".close was called on " + this);
         kademliaRef.connections.remove(this);//MUY MUY importante
         if (!isStillRunning) {
             console.log("im already closed, leave me alone " + this);

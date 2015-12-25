@@ -41,19 +41,15 @@ import javafx.util.Callback;
  * @author aidan
  */
 public class DataGUITab extends Tab {
-
     private static final ObservableList<KeyValueData> keyValueDataList = FXCollections.observableArrayList();
     private static Kademlia kad;
     private static ProgressBar fileProgressBar;
     private static HashMap<Long, String> keyHashLookup;
-
     DataGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
-
         kad = kademliaRef;
         this.setText("Data");
         this.setClosable(false);
-
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -123,7 +119,6 @@ public class DataGUITab extends Tab {
             }
         });
         grid.add(refreshBtn, 8, 5, 2, 1);
-
         keyHashLookup = new HashMap();
 
         /* GET */
@@ -140,7 +135,7 @@ public class DataGUITab extends Tab {
                 if (getKeyTextField.getText().length() == 0) {
                     return;
                 }
-                keyHashLookup.put(Lookup.hash(getKeyTextField.getText().getBytes()), getKeyTextField.getText());
+                keyHashLookup.put(Lookup.maskedHash(getKeyTextField.getText().getBytes(), DDT.STANDARD_PUT_GET), getKeyTextField.getText());
                 kad.get(getKeyTextField.getText());
                 getKeyTextField.clear();
             }
@@ -164,9 +159,9 @@ public class DataGUITab extends Tab {
                 if (putKeyTextField.getText().length() == 0 || putValueTextField.getText().length() == 0) {
                     return;
                 }
-                keyHashLookup.put(Lookup.hash(putKeyTextField.getText().getBytes()), putKeyTextField.getText());
+                keyHashLookup.put(Lookup.maskedHash(putKeyTextField.getText().getBytes(), DDT.STANDARD_PUT_GET), putKeyTextField.getText());
                 kad.put(putKeyTextField.getText(), putValueTextField.getText().getBytes());
-                incomingKeyValueData(Lookup.hash(putKeyTextField.getText().getBytes()), putValueTextField.getText().getBytes());
+                incomingKeyValueData(Lookup.maskedHash(putKeyTextField.getText().getBytes(), DDT.STANDARD_PUT_GET), putValueTextField.getText().getBytes());
                 putKeyTextField.clear();
                 putValueTextField.clear();
             }
@@ -236,11 +231,9 @@ public class DataGUITab extends Tab {
         fileProgressBar.setDisable(true);
         fileProgressBar.setPrefWidth(980);
         grid.add(fileProgressBar, 1, 9, 8, 1);
-
         //Tab
         this.setContent(grid);
     }
-
     public static void incomingKeyValueData(long rawKey, byte[] rawValue) {
         for (int i = 0; i < keyValueDataList.size(); i++) {
             if (keyValueDataList.get(i).getRawKey() == rawKey) {
@@ -254,12 +247,10 @@ public class DataGUITab extends Tab {
             keyValueDataList.add(new KeyValueData(rawKey, rawValue));
         }
     }
-
     public static void alertForError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR, message);
         alert.show();
     }
-
     public static void updateProgressBar(float progress) {
         if (fileProgressBar.isDisabled()) {
             fileProgressBar.setDisable(false);

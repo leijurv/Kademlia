@@ -62,7 +62,7 @@ public class FileAssembly {
         }
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
-        long partHash = Lookup.hash(contents);
+        long partHash = Lookup.maskedHash(contents, DDT.CHUNK);
         if (partHash != key) {
             throw new IllegalStateException("Something's weird. key is " + key + " but hash(contents) is " + partHash);
         }

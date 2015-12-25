@@ -122,7 +122,7 @@ public class Kademlia {
                             break;
                         case "get":
                         case "getr":
-                            long d = com.equals("get") ? Lookup.hash(command.getBytes()) : Long.parseLong(command);
+                            long d = com.equals("get") ? Lookup.maskedHash(command.getBytes(), DDT.STANDARD_PUT_GET) : Long.parseLong(command);
                             console.log("Getting " + d);
                             byte[] cached = kad.storedData.get(d);
                             if (cached != null) {
@@ -308,13 +308,14 @@ public class Kademlia {
     }
     public void getfile(String keyF, String storPath) throws IOException {
         console.log("Getting " + keyF + " and storing in " + storPath);
-        byte[] caced = storedData.get(Lookup.hash(keyF.getBytes()));
+        long key = Lookup.maskedHash(keyF.getBytes(), DDT.FILE_METADATA);
+        byte[] caced = storedData.get(key);
         if (caced != null) {
             console.log("metadata stored locally");
             new FileAssembly(caced, this, storPath).assemble();
             return;
         }
-        new Lookup(keyF, this, true, true, storPath).execute();
+        new Lookup(key, this, true, true, storPath).execute();
     }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
@@ -352,7 +353,7 @@ public class Kademlia {
                 }
                 max++;
                 summedSize += j;
-                long hash = Lookup.hash(y, 0, j);
+                long hash = Lookup.maskedHash(y, 0, j, DDT.CHUNK);
                 hashes.add(hash);
                 console.log("j: " + j + ", i: " + i + ", hash: " + hash);
                 new Thread() {
@@ -371,26 +372,30 @@ public class Kademlia {
             for (long l : hashes) {
                 out.writeLong(l);
             }
-            new Lookup(name, this, theData.toByteArray(), start).execute();
+            long metadataKey = Lookup.maskedHash(name.getBytes(), DDT.FILE_METADATA);
+            new Lookup(metadataKey, this, theData.toByteArray(), start).execute();
         }
     }
     public void put(long key, byte[] contents) {
+        if (DDT.getFromMask(key) != DDT.STANDARD_PUT_GET) {
+            throw new IllegalStateException("Provided key " + key + " has DDT " + DDT.getFromMask(key) + ", which should be STANDARD_PUT_GET");
+        }
         new Lookup(key, this, contents, System.currentTimeMillis()).execute();
     }
     public void put(String key, byte[] contents) {
-        new Lookup(key, this, contents, System.currentTimeMillis()).execute();
+        put(Lookup.maskedHash(key.getBytes(), DDT.STANDARD_PUT_GET), contents);
     }
-    public void get(String key) {
-        long d = Lookup.hash(key.getBytes());
-        console.log("Getting " + d);
-        byte[] cached = storedData.get(d);
+    public void get(String stringKey) {
+        long key = Lookup.maskedHash(stringKey.getBytes(), DDT.STANDARD_PUT_GET);
+        console.log("Getting " + key);
+        byte[] cached = storedData.get(key);
         if (cached != null) {
             console.log("stored locally");
-            DataGUITab.incomingKeyValueData(d, cached);
+            DataGUITab.incomingKeyValueData(key, cached);
             console.log(new String(cached));
             return;
         }
-        new Lookup(d, this, true).execute();
+        new Lookup(key, this, true).execute();
     }
     private Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);
@@ -492,12 +497,6 @@ public class Kademlia {
                                     handleSocket(socket);
                                 } catch (IOException ex) {
                                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
-                                } finally {
-                                    try {
-                                        socket.close();
-                                    } catch (IOException ex1) {
-                                        Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex1);
-                                    }
                                 }
                             }
                         }.start();
