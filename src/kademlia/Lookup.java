@@ -47,7 +47,6 @@ public class Lookup {
         return ddt.mask(unmaskedHash(o, offset, length));
     }
     public static long unmaskedHash(byte[] o) {
-        console.log("someone's being a naughty nellie and getting an unmasked hash");
         return unmaskedHash(o, 0, o.length);
     }
     private static long unmaskedHash(byte[] o, int offset, int length) {
