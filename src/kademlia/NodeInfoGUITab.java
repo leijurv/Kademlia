@@ -89,8 +89,6 @@ public class NodeInfoGUITab extends Tab {
                     @Override
                     public void run() {
                         timeCounter++;
-                        console.log(timeCounter);
-                        console.log(bytesChartRAMSeries.getData());
                         bytesChartRAMSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredInRAM()));
                         bytesChartDiskSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredOnDisk()));
                         bytesChartTotalSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredInTotal()));
