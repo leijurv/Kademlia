@@ -34,17 +34,12 @@ import javafx.stage.Stage;
  * @author aidan
  */
 public class NodeInfoGUITab extends Tab {
-
     private static Kademlia kad;
-
     NodeInfoGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
-
         kad = kademliaRef;
         this.setText("Node Info");
         this.setClosable(false);
-
-
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -77,37 +72,52 @@ public class NodeInfoGUITab extends Tab {
         bytesChart.setAnimated(false);
         bytesChart.setCreateSymbols(false);
         bytesChart.setTitle("Bytes Stored");
-
         XYChart.Series bytesChartRAMSeries = new XYChart.Series();
         bytesChartRAMSeries.setName("RAM");
         XYChart.Series bytesChartDiskSeries = new XYChart.Series();
         bytesChartDiskSeries.setName("Disk");
         XYChart.Series bytesChartTotalSeries = new XYChart.Series();
         bytesChartTotalSeries.setName("Total");
-
         bytesChart.getData().addAll(bytesChartRAMSeries, bytesChartDiskSeries, bytesChartTotalSeries);
-
         grid.add(bytesChart, 0, 1, 4, 4);
-
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        Runnable getBytesForLabel = () -> {
-            Platform.runLater(() -> {
-                int timeCounter = bytesChartTotalSeries.getData().size();
-                bytesChartRAMSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter * 5), kad.storedData.bytesStoredInRAM()));
-                bytesChartDiskSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter * 5), kad.storedData.bytesStoredOnDisk()));
-                bytesChartTotalSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter * 5), kad.storedData.bytesStoredInTotal()));
-                if (timeCounter == 12) {
-                    bytesChartRAMSeries.getData().remove(0, bytesChartRAMSeries.getData().size());
-                    bytesChartDiskSeries.getData().remove(0, bytesChartDiskSeries.getData().size());
-                    bytesChartTotalSeries.getData().remove(0, bytesChartTotalSeries.getData().size());
-                }
-                bytesStoredInRAMLabel.setText("Data Stored in Ram: " + humanReadableByteCount(kad.storedData.bytesStoredInRAM(), true));
-                bytesStoredOnDiskLabel.setText("Data Stored on Disk: " + humanReadableByteCount(kad.storedData.bytesStoredOnDisk(), true));
-                bytesStoredTotalLabel.setText("Data Stored in Total: " + humanReadableByteCount(kad.storedData.bytesStoredInTotal(), true));
-            });
+        Runnable getBytesForLabel = new Runnable() {
+            int timeCounter = 0;
+            @Override
+            public void run() {
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        timeCounter++;
+                        console.log(timeCounter);
+                        console.log(bytesChartRAMSeries.getData());
+                        bytesChartRAMSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredInRAM()));
+                        bytesChartDiskSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredOnDisk()));
+                        bytesChartTotalSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.bytesStoredInTotal()));
+                        if (timeCounter > 20) {
+                            bytesChartRAMSeries.getData().remove(0, 1);
+                            bytesChartDiskSeries.getData().remove(0, 1);
+                            bytesChartTotalSeries.getData().remove(0, 1);
+                        }
+                        bytesStoredInRAMLabel.setText("Data Stored in Ram: " + humanReadableByteCount(kad.storedData.bytesStoredInRAM(), true));
+                        bytesStoredOnDiskLabel.setText("Data Stored on Disk: " + humanReadableByteCount(kad.storedData.bytesStoredOnDisk(), true));
+                        bytesStoredTotalLabel.setText("Data Stored in Total: " + humanReadableByteCount(kad.storedData.bytesStoredInTotal(), true));
+                    }
+                });
+            }
         };
         executor.scheduleAtFixedRate(getBytesForLabel, 0, 1, TimeUnit.SECONDS);
-
+        Button purgeAllButton = new Button();
+        purgeAllButton.setText("Flush All");
+        purgeAllButton.setTextFill(Color.WHITE);
+        purgeAllButton.setBackground(new Background(new BackgroundFill(Color.RED, new CornerRadii(5), Insets.EMPTY)));
+        purgeAllButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                kad.storedData.flushAll();
+            }
+        });
+        grid.add(purgeAllButton, 3, 5);
         Button purgeRAMButton = new Button();
         purgeRAMButton.setText("Flush RAM");
         purgeRAMButton.setTextFill(Color.WHITE);
@@ -119,11 +129,9 @@ public class NodeInfoGUITab extends Tab {
             }
         });
         grid.add(purgeRAMButton, 0, 5);
-
         //Tab
         this.setContent(grid);
     }
-
     public static String humanReadableByteCount(long bytes, boolean si) {
         int unit = si ? 1000 : 1024;
         if (bytes < unit) {
@@ -133,5 +141,4 @@ public class NodeInfoGUITab extends Tab {
         String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
-
 }

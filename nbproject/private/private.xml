@@ -9,16 +9,17 @@
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/RequestStore.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/FileAssembly.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Bucket.java</file>
-            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/RequestTest.java</file>
+            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/DDT.java</file>
+            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/DataGUITab.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Settings.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/RequestFindValue.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Connection.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/RequestPing.java</file>
-            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/StoredData.java</file>
-            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Kademlia.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Lookup.java</file>
+            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/KeyValueData.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Request.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/ControlSocket.java</file>
+            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/ConnectionGUITab.java</file>
         </group>
     </open-files>
 </project-private>

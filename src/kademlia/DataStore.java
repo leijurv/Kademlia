@@ -105,6 +105,20 @@ public class DataStore {
         }
         System.gc();
     }
+    public void flushAll() {
+        synchronized (lock) {
+            for (long l : storedData.keySet()) {
+                StoredData sd = storedData.get(l);
+                synchronized (sd.lock) {
+                    sd.deleteFromDisk();
+                    sd.data = null;
+                }
+            }
+            storedData.clear();
+            shouldSave = true;
+        }
+        System.gc();
+    }
     public long bytesStoredInRAM() {
         synchronized (lock) {
             return storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).mapToLong(x -> x.size).sum();

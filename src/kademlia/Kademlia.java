@@ -129,7 +129,15 @@ public class Kademlia {
                             break;
                         case "list":
                             console.log(kad.connections);
-                            console.log(kad.storedData);
+                            console.log("RAM: " + kad.storedData.bytesStoredInRAM());
+                            console.log("Disk: " + kad.storedData.bytesStoredOnDisk());
+                            console.log("Total: " + kad.storedData.bytesStoredInTotal());
+                            break;
+                        case "flushram":
+                            kad.storedData.flushRAM();
+                            break;
+                        case "flushall":
+                            kad.storedData.flushAll();
                             break;
                         case "get":
                         case "getr":

@@ -30,6 +30,9 @@ public class StoredData {
     final Object lock = new Object();
     static final Random rand = new Random();
     final DataStore dataStoreRef;
+    public void deleteFromDisk() {
+        getFile().delete();
+    }
     public void write(DataOutputStream out) throws IOException {
         out.writeLong(key);
         out.writeLong(size);
