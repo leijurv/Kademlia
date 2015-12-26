@@ -17,6 +17,8 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -58,6 +60,7 @@ public class Kademlia {
         options.addOption("P", "control-port", true, "sets the port for the control socket");
         options.addOption("s", "silent", false, "enables silent mode");
         options.addOption("h", "help", false, "help");
+        options.addOption("ip", "manual-wan-ip", true, "set the WAN IP manually when Kademlia can't determine it automatically");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         if (cmd.hasOption("h")) {
@@ -75,7 +78,12 @@ public class Kademlia {
         if (cmd.hasOption("p")) {
             myPort = Integer.parseInt(cmd.getOptionValue("p"));
         }
-        Kademlia kad = new Kademlia(myPort);
+        Kademlia kad;
+        if (cmd.hasOption("ip")) {
+            kad = new Kademlia(myPort, cmd.getOptionValue("ip"));
+        } else {
+            kad = new Kademlia(myPort);
+        }
         if (cmd.hasOption("c")) {
             int csPort = 7707;
             if (cmd.hasOption("P")) {
@@ -228,9 +236,11 @@ public class Kademlia {
     final Settings settings;
     private volatile boolean shouldSave = true;
     public Kademlia(int port) throws IOException {
+        this(port, whatIsMyIp());
+    }
+    public Kademlia(int port, String ip) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
-        String ip = whatIsMyIp();
         long nodeid;
         console.log("I am " + ip);
         this.buckets = new Bucket[64];
@@ -579,7 +589,12 @@ public class Kademlia {
             throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
         }
     }
+    private static final List<String> blacklistIP = Arrays.asList(new String[]{"127.0.0.1", "127.0.1.1", "localhost"});
     public static String whatIsMyIp() throws IOException {
-        return InetAddress.getLocalHost().getHostAddress();
+        String ip = InetAddress.getLocalHost().getHostAddress();
+        if (blacklistIP.contains(ip)) {
+            throw new IllegalStateException("Unable to determine WAN IP. Please use -ip option to set manually");
+        }
+        return ip;
     }
 }
