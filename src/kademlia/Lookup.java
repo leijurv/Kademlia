@@ -180,8 +180,10 @@ public class Lookup {
         }
         if (node == null) {
             if (!isKeyLookup) {
-                synchronized (lock) {
-                    onNodeLookupCompleted();
+                if (!hasDoneStore) {
+                    synchronized (lock) {
+                        onNodeLookupCompleted();
+                    }
                 }
             } else {
                 numFailedThreads++;
