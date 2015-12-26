@@ -43,8 +43,7 @@ public class Connection {
             public void run() {
                 try {
                     while (isStillRunning) {
-                        RequestPing rp = new RequestPing();
-                        if (!sendRequest(rp)) {
+                        if (!sendRequest(new RequestPing())) {
                             console.log("SEND FAILED. PING FAILED.");
                             Connection.this.close();
                             return;
@@ -88,7 +87,6 @@ public class Connection {
                             console.log(this + " TOOK MORE THAN " + kademliaRef.settings.pingTimeoutSec + " SECONDS TO RESPOND TO" + r + ". CLOSING CONNECTION.");
                             Connection.this.close();
                             //dont call r.onError here because closing the connection will do it and we dont want duplicate calls
-                            //because in some cases r.onError will trigger lookup.execute and we don't want duplicates of that
                         }
                     } catch (InterruptedException ex) {
                         Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
@@ -96,7 +94,7 @@ public class Connection {
                 }
             }.start();
             return true;
-        } catch (IOException ex) {
+        } catch (Exception ex) {//yes, catch ALL exceptions. no matter what the exception is, we need this catch to run.
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
             console.log("Exception while sending request " + r);
             r.onError(this);
