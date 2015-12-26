@@ -107,12 +107,12 @@ public class StoredData {
         beginSave();
     }
     public void beginSave() {
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 doSave();
             }
-        }.start();
+        });
     }
     public void doSave() {
         synchronized (lock) {

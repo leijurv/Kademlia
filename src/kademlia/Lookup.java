@@ -194,12 +194,12 @@ public class Lookup {
                 alreadyAsked.add(node);
             }
         }
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 sendRequestToNode(node);
             }
-        }.start();
+        });
     }
     private void sendRequestToNode(Node node) {
         Connection conn;
@@ -346,12 +346,12 @@ public class Lookup {
     }
     public void onConnectionError() {
         if (!isLookupFinished()) {
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     executeStep();//if there was an error with one of the requests but we aren't done, try try again
                 }
-            }.start();
+            });
         }
     }
     public void foundValue(byte[] value) {
@@ -367,7 +367,7 @@ public class Lookup {
     public void onCompletion() {
         if (needsToAssemble) {
             console.log("Received metadata. Starting assembly...");
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -376,7 +376,7 @@ public class Lookup {
                         Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-            }.start();
+            });
             return;
         }
         if (assembly != null) {

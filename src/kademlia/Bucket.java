@@ -79,21 +79,21 @@ public class Bucket {
         }
     }
     public void pingAll() {
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 for (long nodeid : nodeids) {
                     pingThatNode(nodeid);
                 }
             }
-        }.start();
+        });
     }
     public void pingThatNode(long toRemove) {
         Node n = nodes.get(toRemove);
         if (n == null) {
             throw new IllegalStateException("YOUR MOTHER");
         }
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -110,7 +110,7 @@ public class Bucket {
                 console.log("removing " + n + " from bucket because its bad");
                 removeNode(n);
             }
-        }.start();
+        });
     }
     @Override
     public String toString() {

@@ -58,12 +58,12 @@ public class RequestFindNode extends Request {
         for (Node node : nodes) {
             conn.kademliaRef.addOrUpdate(node);
         }
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 lookup.foundNodes(nodes);
             }
-        }.start();
+        });
     }
     @Override
     public void onError0(Connection conn) {

@@ -62,12 +62,12 @@ public class RequestFindValue extends Request {
             int len = in.readInt();
             byte[] value = new byte[len];
             in.readFully(value);
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     lookup.foundValue(value);
                 }
-            }.start();
+            });
             return;
         }
         int num = in.readInt();
@@ -83,12 +83,12 @@ public class RequestFindValue extends Request {
         for (Node node : nodes) {
             conn.kademliaRef.addOrUpdate(node);
         }
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 lookup.foundNodes(nodes);
             }
-        }.start();
+        });
     }
     @Override
     public void onError0(Connection conn) {

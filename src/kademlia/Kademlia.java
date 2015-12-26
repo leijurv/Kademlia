@@ -24,6 +24,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -41,6 +44,7 @@ import org.apache.commons.cli.ParseException;
  * @author leijurv
  */
 public class Kademlia {
+    public static final ThreadPoolExecutor threadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
     static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
@@ -69,6 +73,7 @@ public class Kademlia {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("kademlia", options);
             System.exit(0);
+            return;
         }
         if (cmd.hasOption("v")) {
             verbose = true;
@@ -281,14 +286,14 @@ public class Kademlia {
         startPingAllThread();
     }
     private void startPingAllThread() {
-        new Thread() {
+        threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < 64; i++) {
                     buckets[i].pingAll();
                 }
             }
-        }.start();
+        });
     }
     public void heyYouShouldSaveSoon() {
         shouldSave = true;
@@ -376,12 +381,12 @@ public class Kademlia {
                 long hash = Lookup.maskedHash(y, 0, j, DDT.CHUNK);
                 hashes.add(hash);
                 console.log("j: " + j + ", i: " + i + ", hash: " + hash);
-                new Thread() {
+                threadPool.execute(new Runnable() {
                     @Override
                     public void run() {
                         new Lookup(hash, Kademlia.this, y, System.currentTimeMillis(), 0, j).execute();
                     }
-                }.start();
+                });
                 Thread.sleep(100);
             }
             console.log("Dividing file of size " + summedSize + " into " + hashes.size() + " partitions of size " + partSize);
@@ -513,7 +518,7 @@ public class Kademlia {
                     console.log(myself + " listening " + server);
                     while (true) {
                         Socket socket = server.accept();
-                        new Thread() {
+                        threadPool.execute(new Runnable() {
                             @Override
                             public void run() {
                                 try {
@@ -522,7 +527,7 @@ public class Kademlia {
                                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             }
-                        }.start();
+                        });
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
@@ -559,7 +564,7 @@ public class Kademlia {
         }
         addOrUpdate(other);
         Connection conn = new Connection(other, socket, this);
-        new Thread() {
+        threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -574,7 +579,7 @@ public class Kademlia {
                     //but if reconnect fails, block that sucker
                 }
             }
-        }.start();
+        });
         if (!noGUI) {
             ConnectionGUITab.addConnection();
         }

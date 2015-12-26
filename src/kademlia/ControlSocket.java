@@ -18,9 +18,7 @@ import java.util.logging.Logger;
  * @author aidan
  */
 public class ControlSocket {
-
     // Syntax is [int number of parameters, [int length of each parameter], protocol, id, [parameters]]
-
     ControlSocket(int port, Kademlia kad) throws IOException {
         ServerSocket server = new ServerSocket(port);
         new Thread() {
@@ -31,7 +29,7 @@ public class ControlSocket {
                         Socket socket = server.accept();
                         DataInputStream in = new DataInputStream(socket.getInputStream());
                         DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                        new Thread() {
+                        Kademlia.threadPool.execute(new Runnable() {
                             @Override
                             public void run() {
                                 try {
@@ -77,7 +75,7 @@ public class ControlSocket {
                                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             }
-                        }.start();
+                        });
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);

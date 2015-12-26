@@ -37,7 +37,7 @@ public class Connection {
         this.kademliaRef = kademlia;
     }
     public void doListen() throws IOException {
-        new Thread() {
+        Kademlia.threadPool.execute(new Runnable() {
             private final Random rand = new Random();
             @Override
             public void run() {
@@ -54,7 +54,7 @@ public class Connection {
                     Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        }.start();
+        });
         while (true) {
             readMessage();
         }
@@ -79,7 +79,7 @@ public class Connection {
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Sent request " + r + " to " + node);
             }
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -93,7 +93,7 @@ public class Connection {
                         Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-            }.start();
+            });
             return true;
         } catch (Exception ex) {//yes, catch ALL exceptions. no matter what the exception is, we need this catch to run.
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
@@ -146,7 +146,7 @@ public class Connection {
             r.onResponse(in, this);
         } else {
             final Request request = Request.read(in);
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -167,7 +167,7 @@ public class Connection {
                         //dont call r.onError because this is the server side lol
                     }
                 }
-            }.start();
+            });
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Received request " + request + " from " + node);
             }

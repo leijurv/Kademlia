@@ -48,7 +48,7 @@ public class FileAssembly {
             console.log("Of the " + hashes.length + " hashes, there were " + (hashes.length - uniqueh.size()) + " duplicates. Only need to get " + (uniqueh.size()) + " hashes");
         }
         for (long hash : uniqueh) {
-            new Thread() {
+            Kademlia.threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     byte[] pos = kademliaRef.storedData.get(hash);
@@ -59,7 +59,7 @@ public class FileAssembly {
                         new Lookup(FileAssembly.this, hash, kademliaRef).execute();
                     }
                 }
-            }.start();
+            });
         }
     }
     public void onPartCompleted(long key, byte[] contents, boolean t) {
