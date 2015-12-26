@@ -98,7 +98,7 @@ public class Kademlia {
                 }
             }.start();
         } else {
-            noGUI = false;
+            noGUI = true;
         }
         if (cmd.hasOption("C")) {
             Scanner scan = new Scanner(System.in);
