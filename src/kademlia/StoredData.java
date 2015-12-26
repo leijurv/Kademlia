@@ -85,6 +85,7 @@ public class StoredData {
                         }
                     }
                     data = temp;
+                    console.log("Read " + size + " bytes from disk for key " + key);
                 } catch (IOException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
                 }

@@ -18,6 +18,8 @@ public abstract class Request {
     private static final SecureRandom sc = new SecureRandom();
     final byte requestType;
     final long requestID;
+    public volatile long sendDate = -1;
+    public volatile long responseDate = -1;
     private volatile boolean hasErrored = false;
     protected Request(byte requestType) {
         this.requestType = requestType;

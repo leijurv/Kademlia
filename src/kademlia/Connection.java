@@ -75,6 +75,7 @@ public class Connection {
             synchronized (outLock) {
                 out.write(toWrite);
             }
+            r.sendDate = System.currentTimeMillis();
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Sent request " + r + " to " + node);
             }
@@ -138,8 +139,9 @@ public class Connection {
             if (r == null) {
                 throw new IOException("Received response ID " + requestID + " for nonexistant request");
             }
+            r.responseDate = System.currentTimeMillis();
             if (Kademlia.verbose) {
-                console.log(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left");
+                console.log(kademliaRef.myself + " Got response for " + r + " with " + pendingRequests.keySet().size() + " left after " + (r.responseDate - r.sendDate) + "ms");
             }
             r.onResponse(in, this);
         } else {
