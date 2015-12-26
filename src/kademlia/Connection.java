@@ -84,7 +84,7 @@ public class Connection {
                 public void run() {
                     try {
                         Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
-                        if (!isStillRunning || isRequestStillPending(r)) {
+                        if (isRequestStillPending(r)) {
                             console.log(this + " TOOK MORE THAN " + kademliaRef.settings.pingTimeoutSec + " SECONDS TO RESPOND TO" + r + ". CLOSING CONNECTION.");
                             Connection.this.close();
                             //dont call r.onError here because closing the connection will do it and we dont want duplicate calls
