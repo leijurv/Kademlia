@@ -585,6 +585,8 @@ public class Kademlia {
             }
             return conn;
         } catch (IllegalArgumentException | IOException | IllegalStateException e) {
+            console.log("Unable to establish connection to " + node);
+            Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, e);
             //if error while establishing connection, node is probably down
             heyThisNodeIsBeingAnnoying(node);
             throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
