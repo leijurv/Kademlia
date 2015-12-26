@@ -38,7 +38,6 @@ import org.apache.commons.cli.ParseException;
  * @author leijurv
  */
 public class Kademlia {
-
     static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
@@ -136,7 +135,9 @@ public class Kademlia {
                             byte[] cached = kad.storedData.get(d);
                             if (cached != null) {
                                 console.log("stored locally");
-                                DataGUITab.incomingKeyValueData(d, cached);
+                                if (!noGUI) {
+                                    DataGUITab.incomingKeyValueData(d, cached);
+                                }
                                 console.log(new String(cached));
                                 break;
                             }
