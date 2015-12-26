@@ -105,6 +105,46 @@ public class NodeInfoGUITab extends Tab {
             }
         };
         executor.scheduleAtFixedRate(getBytesForLabel, 0, 1, TimeUnit.SECONDS);
+        CategoryAxis linesChartxAxis = new CategoryAxis();
+        linesChartxAxis.setLabel("seconds");
+        NumberAxis linesChartyAxis = new NumberAxis();
+        linesChartyAxis.setLabel("Number of items");
+        LineChart<String, Number> linesChart = new LineChart<>(linesChartxAxis, linesChartyAxis);
+        linesChart.setAnimated(false);
+        linesChart.setCreateSymbols(false);
+        linesChart.setTitle("Items Stored");
+        XYChart.Series linesChartRAMSeries = new XYChart.Series();
+        linesChartRAMSeries.setName("RAM");
+        XYChart.Series linesChartDiskSeries = new XYChart.Series();
+        linesChartDiskSeries.setName("Disk");
+        XYChart.Series linesChartTotalSeries = new XYChart.Series();
+        linesChartTotalSeries.setName("Total");
+        linesChart.getData().addAll(linesChartRAMSeries, linesChartDiskSeries, linesChartTotalSeries);
+        grid.add(linesChart, 6, 1, 4, 4);
+        Runnable getItemsForLabel = new Runnable() {
+            int timeCounter = 0;
+            @Override
+            public void run() {
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        timeCounter++;
+                        linesChartRAMSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.itemsStoredInRAM()));
+                        linesChartDiskSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.itemsStoredOnDisk()));
+                        linesChartTotalSeries.getData().add(new XYChart.Data(Integer.toString(timeCounter), kad.storedData.itemsStoredInTotal()));
+                        if (timeCounter > 20) {
+                            linesChartRAMSeries.getData().remove(0, 1);
+                            linesChartDiskSeries.getData().remove(0, 1);
+                            linesChartTotalSeries.getData().remove(0, 1);
+                        }
+                        //bytesStoredInRAMLabel.setText("Items Stored in Ram: " + humanReadableByteCount(kad.storedData.itemsStoredInRAM(), true));
+                        //bytesStoredOnDiskLabel.setText("Items Stored on Disk: " + humanReadableByteCount(kad.storedData.itemsStoredOnDisk(), true));
+                        //bytesStoredTotalLabel.setText("Items Stored in Total: " + humanReadableByteCount(kad.storedData.itemsStoredInTotal(), true));
+                    }
+                });
+            }
+        };
+        executor.scheduleAtFixedRate(getItemsForLabel, 0, 1, TimeUnit.SECONDS);
         Button purgeAllButton = new Button();
         purgeAllButton.setText("Flush All");
         purgeAllButton.setTextFill(Color.WHITE);

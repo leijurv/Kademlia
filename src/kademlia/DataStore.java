@@ -57,6 +57,9 @@ public class DataStore {
     private StoredData getRandomStoredData() {
         synchronized (lock) {
             List<Long> keyset = new ArrayList<>(storedData.keySet());
+            if (keyset.isEmpty()) {
+                return null;
+            }
             return storedData.get(keyset.get(rand.nextInt(keyset.size() - 1)));
         }
     }
@@ -189,6 +192,21 @@ public class DataStore {
     public long bytesStoredInTotal() {
         synchronized (lock) {
             return storedData.keySet().stream().mapToLong(key -> storedData.get(key).size).sum();
+        }
+    }
+    public long itemsStoredInRAM() {
+        synchronized (lock) {
+            return storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).count();
+        }
+    }
+    public long itemsStoredOnDisk() {
+        synchronized (lock) {
+            return storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> !x.isInRAM()).count();
+        }
+    }
+    public long itemsStoredInTotal() {
+        synchronized (lock) {
+            return storedData.keySet().size();
         }
     }
     public void put(long key, byte[] value, long lastModified) {
