@@ -35,7 +35,7 @@ public class Lookup {
     private String storageLocation;
     private long lastMod;
     private final StoredData storedData;
-    private volatile boolean isClosestNormalized = true;
+    private volatile boolean isClosestNormalized = false;
     private final Object lock = new Object();
     private volatile boolean hasDoneStore = false;
     private volatile int numFinishedThreads = 0;
