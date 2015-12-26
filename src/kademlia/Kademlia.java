@@ -554,6 +554,9 @@ public class Kademlia {
         if (Kademlia.verbose) {
             console.log(myself + " Received node data " + other + " from socket " + socket);
         }
+        if (myself.equals(other)) {
+            throw new IllegalStateException("what the hell");
+        }
         addOrUpdate(other);
         Connection conn = new Connection(other, socket, this);
         new Thread() {
