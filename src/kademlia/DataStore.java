@@ -60,17 +60,41 @@ public class DataStore {
             return storedData.get(keyset.get(rand.nextInt(keyset.size() - 1)));
         }
     }
+    private StoredData getFirstStoredData() {
+        StoredData best = null;
+        long w = Long.MAX_VALUE;
+        synchronized (lock) {
+            for (long l : storedData.keySet()) {
+                StoredData sd = storedData.get(l);
+                if (sd.lastTested < w) {
+                    w = sd.lastTested;
+                    best = sd;
+                }
+            }
+        }
+        return best;
+    }
+    private StoredData whatShouldITest() {
+        if (rand.nextInt(10) == 0) {
+            return getRandomStoredData();
+        }
+        return getFirstStoredData();
+    }
     private void startTestThread() {
-        int eachInterval = 60000;
+        int fullRefreshInterval = 60000;//TODO make this a setting
+        int minwait = 1000;//TODO make this a setting
         new Thread() {
             @Override
             public void run() {
                 try {
                     while (true) {
-                        int numStored = Math.max(storedData.keySet().size(), 1);
-                        int waitTime = eachInterval / numStored;
-                        Thread.sleep(waitTime + rand.nextInt(waitTime / 10));
-                        StoredData sd = getRandomStoredData();
+                        int numStored = storedData.keySet().size();
+                        int waitTime = fullRefreshInterval / Math.max(numStored, 1);
+                        Thread.sleep(waitTime + rand.nextInt(waitTime / 10) + minwait);
+                        if (numStored == 0) {
+                            continue;
+                        }
+                        StoredData sd = whatShouldITest();
                         sd.runTest();
                     }
                 } catch (InterruptedException ex) {

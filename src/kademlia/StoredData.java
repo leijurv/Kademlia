@@ -25,7 +25,8 @@ public class StoredData {
     long hash;
     long lastModified;
     long lastRetreived;
-    long size;
+    long lastTested;
+    int size;
     final Object lock = new Object();
     final DataStore dataStoreRef;
     public void deleteFromDisk() {
@@ -33,18 +34,20 @@ public class StoredData {
     }
     public void write(DataOutputStream out) throws IOException {
         out.writeLong(key);
-        out.writeLong(size);
+        out.writeInt(size);
         out.writeLong(hash);
         out.writeLong(lastModified);
         out.writeLong(lastRetreived);
+        out.writeLong(lastTested);
     }
     public StoredData(DataInputStream in, DataStore dataStoreRef) throws IOException {
         this.dataStoreRef = dataStoreRef;
         this.key = in.readLong();
-        this.size = in.readLong();
+        this.size = in.readInt();
         this.hash = in.readLong();
         this.lastModified = in.readLong();
         this.lastRetreived = in.readLong();
+        this.lastTested = in.readLong();
         this.data = null;
         this.ddt = DDT.getFromMask(key);
     }
@@ -73,7 +76,7 @@ public class StoredData {
             File save = getFile();
             if (save.exists()) {
                 try (DataInputStream in = new DataInputStream(new FileInputStream(save))) {
-                    byte[] temp = new byte[(int) size];
+                    byte[] temp = new byte[size];
                     in.readFully(temp);
                     long checksum = Lookup.unmaskedHash(temp);
                     if (checksum != hash) {
@@ -125,6 +128,7 @@ public class StoredData {
         return new File(dataStoreRef.dataStoreDir + key);
     }
     public void runTest() {
+        lastTested = System.currentTimeMillis();
         new Lookup(key, dataStoreRef.kademliaRef, StoredData.this).execute();
     }
     public void storeCopyIn(Connection conn) {
