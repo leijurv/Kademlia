@@ -18,6 +18,7 @@ public abstract class Request {
     private static final SecureRandom sc = new SecureRandom();
     final byte requestType;
     final long requestID;
+    private volatile boolean hasErrored = false;
     protected Request(byte requestType) {
         this.requestType = requestType;
         requestID = sc.nextLong();
@@ -35,7 +36,14 @@ public abstract class Request {
     public abstract void sendData(DataOutputStream out) throws IOException;
     public abstract void execute(Kademlia kademliaRef, DataOutputStream out) throws IOException;
     public abstract void onResponse(DataInputStream in, Connection conn) throws IOException;
-    public abstract void onError(Connection conn);
+    protected abstract void onError0(Connection conn);
+    public void onError(Connection conn) {//we really can't have dupes of this
+        if (hasErrored) {
+            throw new IllegalStateException("I have already errored. " + this);
+        }
+        hasErrored = true;
+        onError0(conn);
+    }
     public static Request read(DataInputStream in) throws IOException {
         long requestID = in.readLong();
         byte requestType = in.readByte();

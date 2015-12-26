@@ -82,6 +82,6 @@ public class RequestTest extends Request {
         }
     }
     @Override
-    public void onError(Connection conn) {
+    public void onError0(Connection conn) {
     }
 }

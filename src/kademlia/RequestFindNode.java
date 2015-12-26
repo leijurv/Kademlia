@@ -66,7 +66,7 @@ public class RequestFindNode extends Request {
         }.start();
     }
     @Override
-    public void onError(Connection conn) {
+    public void onError0(Connection conn) {
         lookup.onConnectionError();
     }
 }

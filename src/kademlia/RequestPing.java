@@ -31,6 +31,6 @@ public class RequestPing extends Request {
         conn.node.lastSuccessfulDataTransfer = System.currentTimeMillis();
     }
     @Override
-    public void onError(Connection conn) {
+    public void onError0(Connection conn) {
     }
 }

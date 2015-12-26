@@ -91,7 +91,7 @@ public class RequestFindValue extends Request {
         }.start();
     }
     @Override
-    public void onError(Connection conn) {
+    public void onError0(Connection conn) {
         lookup.onConnectionError();
     }
 }

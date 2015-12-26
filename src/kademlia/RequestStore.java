@@ -54,7 +54,7 @@ public class RequestStore extends Request {
     public void onResponse(DataInputStream in, Connection conn) throws IOException {
     }
     @Override
-    public void onError(Connection conn) {
+    public void onError0(Connection conn) {
         console.log("Failed to put " + key + " into node " + conn);
     }
 }
