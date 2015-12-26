@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -343,6 +344,12 @@ public class Lookup {
         }
     }
     public void foundValue(byte[] value) {
+        if (value != null) {
+            if (Arrays.hashCode(value) == Arrays.hashCode(this.value)) {
+                return;
+            }
+            console.log("there are potentially many versions of this. here's another");
+        }
         this.value = value;
         onCompletion();
     }
