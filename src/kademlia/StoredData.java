@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,7 +27,6 @@ public class StoredData {
     long lastRetreived;
     long size;
     final Object lock = new Object();
-    static final Random rand = new Random();
     final DataStore dataStoreRef;
     public void deleteFromDisk() {
         getFile().delete();
@@ -49,7 +47,6 @@ public class StoredData {
         this.lastRetreived = in.readLong();
         this.data = null;
         this.ddt = DDT.getFromMask(key);
-        startThread();
     }
     public StoredData(long key, byte[] data, long lastModified, DataStore dataStoreRef) {
         this.dataStoreRef = dataStoreRef;
@@ -60,7 +57,6 @@ public class StoredData {
         this.hash = Lookup.unmaskedHash(data);
         this.lastModified = lastModified;
         this.lastRetreived = 0;
-        startThread();
     }
     public boolean isInRAM() {
         return data != null;
@@ -128,20 +124,8 @@ public class StoredData {
     public File getFile() {
         return new File(dataStoreRef.dataStoreDir + key);
     }
-    private void startThread() {
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    while (true) {
-                        Thread.sleep(60000 + rand.nextInt(10000));
-                        new Lookup(key, dataStoreRef.kademliaRef, StoredData.this).execute();
-                    }
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }.start();
+    public void runTest() {
+        new Lookup(key, dataStoreRef.kademliaRef, StoredData.this).execute();
     }
     public void storeCopyIn(Connection conn) {
         conn.sendRequest(new RequestStore(key, getData0(), lastModified));

@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,10 +30,14 @@ import java.util.stream.Collectors;
 public class DataStore {
     final String dataStoreDir;
     final Kademlia kademliaRef;
-    private final HashMap<Long, StoredData> storedData = new HashMap<>();
-    private final Object lock = new Object();
-    private volatile boolean shouldSave = true;
+    private final HashMap<Long, StoredData> storedData;
+    private final Object lock;
+    private volatile boolean shouldSave;
+    static final Random rand = new Random();
     public DataStore(Kademlia kademliaRef) {
+        this.shouldSave = true;
+        this.lock = new Object();
+        this.storedData = new HashMap<>();
         this.kademliaRef = kademliaRef;
         this.dataStoreDir = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
@@ -44,8 +50,34 @@ public class DataStore {
             shouldSave = false;
         }
         new File(dataStoreDir).mkdirs();
-        startThread();
+        startSaveThread();
         startMemoryConvervationThread();
+        startTestThread();
+    }
+    private StoredData getRandomStoredData() {
+        synchronized (lock) {
+            List<Long> keyset = new ArrayList<>(storedData.keySet());
+            return storedData.get(keyset.get(rand.nextInt(keyset.size() - 1)));
+        }
+    }
+    private void startTestThread() {
+        int eachInterval = 60000;
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        int numStored = Math.max(storedData.keySet().size(), 1);
+                        int waitTime = eachInterval / numStored;
+                        Thread.sleep(waitTime + rand.nextInt(waitTime / 10));
+                        StoredData sd = getRandomStoredData();
+                        sd.runTest();
+                    }
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }.start();
     }
     private void startMemoryConvervationThread() {
         new Thread() {
@@ -197,7 +229,7 @@ public class DataStore {
             }
         }
     }
-    private void startThread() {
+    private void startSaveThread() {
         new Thread() {
             @Override
             public void run() {
