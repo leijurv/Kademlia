@@ -75,12 +75,8 @@ public class StoredData {
             if (save.exists()) {
                 try (DataInputStream in = new DataInputStream(new FileInputStream(save))) {
                     byte[] temp = new byte[(int) size];
-                    int j = in.read(temp);
-                    if (j != size) {
-                        throw new IllegalStateException("kush");
-                    }
-                    data = temp;
-                    long checksum = Lookup.unmaskedHash(data);
+                    in.readFully(temp);
+                    long checksum = Lookup.unmaskedHash(temp);
                     if (checksum != hash) {
                         String yolo = "Did read from disk. Expected hash: " + hash + ". Real hash: " + checksum + ". DDT: " + ddt;
                         console.log(yolo);
@@ -88,6 +84,7 @@ public class StoredData {
                             throw new IllegalStateException(yolo);
                         }
                     }
+                    data = temp;
                 } catch (IOException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -125,7 +122,7 @@ public class StoredData {
         }
     }
     public File getFile() {
-        return new File(dataStoreRef.dataStoreFile + key);
+        return new File(dataStoreRef.dataStoreDir + key);
     }
     private void startThread() {
         new Thread() {

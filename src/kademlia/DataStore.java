@@ -5,6 +5,8 @@
  */
 package kademlia;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -12,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.logging.Level;
@@ -23,11 +26,14 @@ import java.util.stream.Collectors;
  * @author leijurv
  */
 public class DataStore {
-    final String dataStoreFile;
+    final String dataStoreDir;
     final Kademlia kademliaRef;
+    private final HashMap<Long, StoredData> storedData = new HashMap<>();
+    private final Object lock = new Object();
+    private volatile boolean shouldSave = true;
     public DataStore(Kademlia kademliaRef) {
         this.kademliaRef = kademliaRef;
-        this.dataStoreFile = kademliaRef.dataStorageDir;
+        this.dataStoreDir = kademliaRef.dataStorageDir;
         if (getSaveFile().exists()) {
             try {
                 console.log("datastorage is reading metadata from save " + getSaveFile().getCanonicalPath());
@@ -35,14 +41,12 @@ public class DataStore {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
             }
             readFromSave();
+            shouldSave = false;
         }
-        new File(dataStoreFile).mkdirs();
+        new File(dataStoreDir).mkdirs();
         startThread();
         startMemoryConvervationThread();
     }
-    private final HashMap<Long, StoredData> storedData = new HashMap<>();
-    private final Object lock = new Object();
-    private volatile boolean shouldSave = true;
     private void startMemoryConvervationThread() {
         new Thread() {
             @Override
@@ -54,7 +58,7 @@ public class DataStore {
                         synchronized (lock) {
                             ArrayList<StoredData> inRAM = storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).collect(Collectors.toCollection(ArrayList::new));
                             long currentRAMSize = inRAM.stream().mapToLong(x -> x.size).sum();
-                            inRAM.sort((StoredData o1, StoredData o2) -> new Long(o1.lastRetreived).compareTo(o2.lastRetreived));
+                            inRAM.sort(Comparator.comparingLong(data -> data.lastRetreived));
                             console.log("Size before: " + currentRAMSize);
                             while (currentRAMSize > kademliaRef.settings.maxRAMSizeBytes) {
                                 StoredData sd = inRAM.remove(0);
@@ -147,8 +151,7 @@ public class DataStore {
     }
     private void doSave() {
         synchronized (lock) {
-            try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
-                DataOutputStream out = new DataOutputStream(fileOut);
+            try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
                 Set<Long> keySet = storedData.keySet();
                 out.writeInt(keySet.size());
                 for (Long l : keySet) {
@@ -161,17 +164,19 @@ public class DataStore {
         }
     }
     private File getSaveFile() {
-        return new File(dataStoreFile + "data");
+        return new File(dataStoreDir + "data");
     }
     private void readFromSave() {
         synchronized (lock) {
-            try (FileInputStream fileIn = new FileInputStream(getSaveFile())) {
-                DataInputStream in = new DataInputStream(fileIn);
+            try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
                 int num = in.readInt();
+                StoredData[] data = new StoredData[num];
+                for (int i = 0; i < num; i++) {
+                    data[i] = new StoredData(in, this);
+                }
                 storedData.clear();
                 for (int i = 0; i < num; i++) {
-                    StoredData data = new StoredData(in, this);
-                    storedData.put(data.key, data);
+                    storedData.put(data[i].key, data[i]);
                 }
             } catch (IOException ex) {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);

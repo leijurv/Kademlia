@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -81,7 +82,7 @@ public class FileAssembly {
             return;
         }
         console.log("done getting the file");
-        try (OutputStream out = new InflaterOutputStream(new FileOutputStream(new File(storageLocation)))) {
+        try (OutputStream out = new InflaterOutputStream(new BufferedOutputStream(new FileOutputStream(new File(storageLocation))))) {
             for (int i = 0; i < hashes.length; i++) {
                 out.write(parts[i]);
                 //System.out.write(parts[i]);

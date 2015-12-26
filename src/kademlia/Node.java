@@ -8,6 +8,7 @@ package kademlia;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 
 /**
  *
@@ -62,5 +63,8 @@ public class Node {
             console.log(this + " and " + obj + " are being incorrectly compared as being the same");
         }
         return true;
+    }
+    public static Comparator<Node> createDistanceComparator(final long key) {
+        return Comparator.comparingLong(node -> node.nodeid ^ key);
     }
 }

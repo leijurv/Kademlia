@@ -5,6 +5,8 @@
  */
 package kademlia;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -18,6 +20,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -247,8 +250,7 @@ public class Kademlia {
         this.buckets = new Bucket[64];
         if (getSaveFile().exists()) {
             console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
-            try (FileInputStream fileIn = new FileInputStream(getSaveFile())) {
-                DataInputStream in = new DataInputStream(fileIn);
+            try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
                 nodeid = in.readLong();
                 for (int i = 0; i < 64; i++) {
                     buckets[i] = new Bucket(i, this, in);
@@ -303,8 +305,7 @@ public class Kademlia {
     }
     private void writeToSave() throws IOException {
         console.log("Kademlia is writing to save file");
-        try (FileOutputStream fileOut = new FileOutputStream(getSaveFile())) {
-            DataOutputStream out = new DataOutputStream(fileOut);
+        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
             out.writeLong(myself.nodeid);
             for (int i = 0; i < 64; i++) {
                 buckets[i].write(out);
@@ -337,7 +338,6 @@ public class Kademlia {
             int partSize = 524288;
             progress = 0;
             max = 1;
-            long start = System.currentTimeMillis();
             ArrayList<Long> hashes = new ArrayList<>();
             int summedSize = 0;
             boolean wl = false;
@@ -371,7 +371,7 @@ public class Kademlia {
                 new Thread() {
                     @Override
                     public void run() {
-                        new Lookup(hash, Kademlia.this, y, start, 0, j).execute();
+                        new Lookup(hash, Kademlia.this, y, System.currentTimeMillis(), 0, j).execute();
                     }
                 }.start();
                 Thread.sleep(100);
@@ -385,7 +385,7 @@ public class Kademlia {
                 out.writeLong(l);
             }
             long metadataKey = Lookup.maskedHash(name.getBytes(), DDT.FILE_METADATA);
-            new Lookup(metadataKey, this, theData.toByteArray(), start).execute();
+            new Lookup(metadataKey, this, theData.toByteArray(), System.currentTimeMillis()).execute();
         }
     }
     public void put(long key, byte[] contents) {
@@ -403,7 +403,9 @@ public class Kademlia {
         byte[] cached = storedData.get(key);
         if (cached != null) {
             console.log("stored locally");
-            DataGUITab.incomingKeyValueData(key, cached);
+            if (!noGUI) {
+                DataGUITab.incomingKeyValueData(key, cached);
+            }
             console.log(new String(cached));
             return;
         }
@@ -454,7 +456,7 @@ public class Kademlia {
          }
          }*/
         ArrayList<Node> closest = Stream.of(buckets).flatMap(bucket -> bucket.nodeids.stream().map(nodeid -> bucket.nodes.get(nodeid))).collect(Collectors.toCollection(ArrayList::new));
-        closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
+        closest.sort(Node.createDistanceComparator(search));
         if (closest.size() > num) {
             return new ArrayList<>(closest.subList(0, num));
         }
@@ -462,6 +464,7 @@ public class Kademlia {
     }
     public ArrayList<Node> findNClosest1(int num, long search) {//this is a more efficient way to do it, but it doesn't quite work right
         ArrayList<Node> closest = new ArrayList<>();
+        final Comparator<Node> distanceComparator = Node.createDistanceComparator(search);
         long currWorst = 0;
         int nf = 0;
         for (Bucket bucket : buckets) {
@@ -471,14 +474,14 @@ public class Kademlia {
                     nf++;
                 } else {
                     if (nf == num) {
-                        closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
+                        closest.sort(distanceComparator);
                         currWorst = closest.get(num - 1).nodeid ^ search;
                         nf++;
                     }
                     long distance = nodeid ^ search;
                     if (distance < currWorst) {
                         closest.add(bucket.nodes.get(nodeid));
-                        closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
+                        closest.sort(distanceComparator);
                         closest.remove(num);
                         currWorst = closest.get(num - 1).nodeid ^ search;
                     }
@@ -486,7 +489,7 @@ public class Kademlia {
             }
         }
         if (nf <= num) {
-            closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ search).compareTo(o2.nodeid ^ search));
+            closest.sort(distanceComparator);
         }
         return closest;
     }

@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,9 +35,11 @@ public class Lookup {
     private String storageLocation;
     private long lastMod;
     private final StoredData storedData;
+    private volatile boolean isClosestNormalized = true;
     private final Object lock = new Object();
     private volatile boolean hasDoneStore = false;
-    private volatile int numFailedThreads = 0;
+    private volatile int numFinishedThreads = 0;
+    private Comparator<Node> distanceComparator;
     public static long maskedHash(byte[] o, DDT ddt) {
         return maskedHash(o, 0, o.length, ddt);
     }
@@ -65,6 +68,7 @@ public class Lookup {
         return Math.abs(h);
     }
     public Lookup(long key, Kademlia kademliaRef, StoredData data) {
+        this.distanceComparator = Node.createDistanceComparator(key);
         this.contLen = 0;
         this.contentsToPut = null;
         this.contOffset = 0;
@@ -88,18 +92,11 @@ public class Lookup {
         this.contOffset = offset;
         this.contLen = length;
     }
-    /*public Lookup(String path, Kademlia kademliaRef, byte[] contents, long lastModified) {
-     this(hash(path.getBytes()), kademliaRef, contents, lastModified);
-     }*/
     public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
         this(key, kademliaRef, true);
         this.assembly = f;
         this.closest = null;
     }
-    /*public Lookup(String path, Kademlia kademliaRef, boolean isKeyLookup) {
-     this(hash(path.getBytes()), kademliaRef, isKeyLookup);
-     this.closest = null;
-     }*/
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
         this(key, kademliaRef, isKeyLookup);
         this.closest = null;
@@ -107,6 +104,7 @@ public class Lookup {
         this.needsToAssemble = assemble;
     }
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup) {
+        this.distanceComparator = Node.createDistanceComparator(key);
         this.needsToAssemble = false;
         this.assembly = null;
         this.storageLocation = null;
@@ -147,7 +145,8 @@ public class Lookup {
                 }
                 closest = kademliaRef.findNClosest(Kademlia.k, key);
             }
-            closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ key).compareTo(o2.nodeid ^ key));
+            closest.sort(distanceComparator);
+            isClosestNormalized = true;
             while (closest.size() > Kademlia.k) {
                 Node removed = closest.remove(closest.size() - 1);
                 if (Kademlia.verbose) {
@@ -162,7 +161,9 @@ public class Lookup {
             console.log("leave me alone im already done");
             return;
         }
-        normalizeClosest();
+        if (!isClosestNormalized) {
+            normalizeClosest();
+        }
         if (Kademlia.verbose) {
             synchronized (lock) {
                 for (Node n : closest) {
@@ -174,24 +175,24 @@ public class Lookup {
         Node node;
         synchronized (lock) {
             node = popFirstNonUsed();
-            if (node != null) {
+            if (node == null) {
+                numFinishedThreads++;
+                if (numFinishedThreads == concurrencyLevel) {
+                    if (!isKeyLookup) {
+                        onNodeLookupCompleted();
+                    } else {
+                        console.log("failed for " + key);
+                    }
+                } else {
+                    if (numFinishedThreads > concurrencyLevel) {
+                        throw new IllegalStateException("oh god, another concurrency issue");
+                    }
+                    console.log("lookup thread " + numFinishedThreads + " of " + concurrencyLevel + " is done");
+                }
+                return;
+            } else {
                 alreadyAsked.add(node);
             }
-        }
-        if (node == null) {
-            if (!isKeyLookup) {
-                if (!hasDoneStore) {
-                    synchronized (lock) {
-                        onNodeLookupCompleted();
-                    }
-                }
-            } else {
-                numFailedThreads++;
-                if (numFailedThreads == concurrencyLevel) {
-                    console.log("failed for " + key);
-                }
-            }
-            return;
         }
         new Thread() {
             @Override
@@ -209,6 +210,8 @@ public class Lookup {
             console.log("unable to establish conneciton to " + node);
             synchronized (lock) {
                 closest.remove(node);//haha, do this BEFORE calling onConnectionError and therefore executeStep
+                //dont remove from alreadyAsked, we don't want to ask this node again because they are bad
+                //this doesn't un-normalize closest
             }
             onConnectionError();
             return;
@@ -241,9 +244,12 @@ public class Lookup {
         if (contentsToPut != null) {
             for (Node storageNode : closest) {
                 if (kademliaRef.myself.equals(storageNode)) {
-                    byte[] temp = new byte[contLen - contOffset];
-                    for (int i = 0; i < temp.length; i++) {
-                        temp[i] = contentsToPut[i + contOffset];
+                    byte[] temp;
+                    if (contOffset == 0 && contLen == contentsToPut.length) {
+                        temp = contentsToPut;
+                    } else {
+                        temp = new byte[contLen];
+                        System.arraycopy(contentsToPut, contOffset, temp, 0, contLen);
                     }
                     kademliaRef.storedData.put(key, temp, lastMod);
                     console.log("done, stored locally");
@@ -295,6 +301,9 @@ public class Lookup {
             }
         }
         synchronized (lock) {
+            if (!isClosestNormalized) {
+                normalizeClosest();
+            }
             long worstDistance = closest.isEmpty() ? Long.MAX_VALUE : closest.get(closest.size() - 1).nodeid ^ key;
             for (Node newNode : nodes) {
                 if (!closest.contains(newNode) && !alreadyAsked.contains(newNode)) {
