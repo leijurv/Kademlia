@@ -72,6 +72,7 @@ public class DataStore {
                 }
             }
         }
+        console.log("test lag: " + (System.currentTimeMillis() - w));
         return best;
     }
     private StoredData whatShouldITest() {
