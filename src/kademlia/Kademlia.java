@@ -38,6 +38,7 @@ import org.apache.commons.cli.ParseException;
  * @author leijurv
  */
 public class Kademlia {
+
     static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
@@ -559,7 +560,9 @@ public class Kademlia {
                 }
             }
         }.start();
-        ConnectionGUITab.addConnection();
+        if (!noGUI) {
+            ConnectionGUITab.addConnection();
+        }
         connections.add(conn);
         return conn;
     }
