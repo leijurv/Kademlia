@@ -204,8 +204,10 @@ public class Lookup {
         } catch (IOException ex) {
             Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
             console.log("unable to establish conneciton to " + node);
+            synchronized (lock) {
+                closest.remove(node);//haha, do this BEFORE calling onConnectionError and therefore executeStep
+            }
             onConnectionError();
-            closest.remove(node);
             return;
         }
         if (isKeyLookup) {
