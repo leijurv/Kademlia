@@ -128,7 +128,9 @@ public class Connection {
         pendingRequests.clear();//this is actually fairly crucial
         //if this weren't here we would have hella memory leaks
         //because some of the requests contain references to lookup objects / storeddata objects
-        ConnectionGUITab.stoppedConnection(node.nodeid);//LESS LESS importante
+        if (!Kademlia.noGUI) {
+            ConnectionGUITab.stoppedConnection(node.nodeid);//LESS LESS importante
+        }
     }
     private void readMessage() throws IOException {
         boolean isResp = in.readBoolean();

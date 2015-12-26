@@ -17,6 +17,7 @@ import java.util.logging.Logger;
  * @author leijurv
  */
 public class Lookup {
+    public static final int concurrencyLevel = 3;
     final long key;
     private final Kademlia kademliaRef;
     private byte[] value = null;
@@ -128,6 +129,15 @@ public class Lookup {
         }
     }
     public void execute() {
+        for (int i = 0; i < concurrencyLevel; i++) {
+            executeStep();
+        }
+    }
+    private void executeStep() {
+        if (isLookupFinished()) {
+            console.log("leave me alone im already done");
+            return;
+        }
         if (closest == null) {
             if (Kademlia.verbose) {
                 console.log("Starting lookup for " + key + " for the first time");
@@ -151,81 +161,31 @@ public class Lookup {
         }
         Node node = popFirstNonUsed();
         if (node == null) {
-            if (Kademlia.verbose) {
-                console.log("Lookup for " + key + " has failed");
-            }
             if (!isKeyLookup) {
-                if (Kademlia.verbose) {
-                    console.log("The closest to key " + key + " was " + closest.get(0));
-                }
-                if (storedData != null) {
-                    for (Node storageNode : closest) {
-                        if (!kademliaRef.myself.equals(storageNode)) {
-                            try {
-                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestTest(storedData));
-                            } catch (IOException ex) {
-                                Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    }
-                }
-                if (contentsToPut != null) {
-                    for (Node storageNode : closest) {
-                        if (kademliaRef.myself.equals(storageNode)) {
-                            byte[] temp = new byte[contLen - contOffset];
-                            for (int i = 0; i < temp.length; i++) {
-                                temp[i] = contentsToPut[i + contOffset];
-                            }
-                            kademliaRef.storedData.put(key, temp, lastMod);
-                            console.log("done, stored locally");
-                        } else {
-                            try {
-                                kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod, contOffset, contLen));
-                                console.log("done, stored on " + storageNode);
-                            } catch (IOException ex) {
-                                Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    }
-                    console.log("done, stored on all " + closest.size());
-                    if (kademliaRef.max != 0) {
-                        kademliaRef.progress++;
-                        if (kademliaRef.progress == kademliaRef.max) {
-                            console.log("All done storing");
-                            kademliaRef.max = 0;
-                            if (!Kademlia.noGUI) {
-                                DataGUITab.updateProgressBar(1);
-                            }
-                        } else {
-                            final float progressPercentage = ((float) (kademliaRef.progress)) / ((float) (kademliaRef.max));
-                            if (!Kademlia.noGUI) {
-                                DataGUITab.updateProgressBar(progressPercentage);
-                            }
-                            final int width = 50; // progress bar width in chars
-                            System.out.print("\r[");
-                            int i = 0;
-                            for (; i <= (int) (progressPercentage * width); i++) {
-                                System.out.print(".");
-                            }
-                            for (; i < width; i++) {
-                                System.out.print(" ");
-                            }
-                            System.out.print("]");
-                        }
-                    }
-                }
+                onNodeLookupCompleted();
             } else {
-                console.log("failed");
+                console.log("failed for " + key);
             }
             return;
         }
         alreadyAsked.add(node);
+        new Thread() {
+            @Override
+            public void run() {
+                sendRequestToNode(node);
+            }
+        }.start();
+    }
+    private void sendRequestToNode(Node node) {
         Connection conn;
         try {
             conn = kademliaRef.getOrCreateConnectionToNode(node);
         } catch (IOException ex) {
             Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IllegalStateException("unable to establish conneciton to " + node, ex);
+            console.log("unable to establish conneciton to " + node);
+            onConnectionError();
+            closest.remove(node);
+            return;
         }
         if (isKeyLookup) {
             conn.sendRequest(new RequestFindValue(this));
@@ -233,27 +193,92 @@ public class Lookup {
             conn.sendRequest(new RequestFindNode(this));
         }
     }
+    private void onNodeLookupCompleted() {
+        if (Kademlia.verbose) {
+            console.log("The closest to key " + key + " was " + closest.get(0));
+        }
+        if (storedData != null) {
+            for (Node storageNode : closest) {
+                if (!kademliaRef.myself.equals(storageNode)) {
+                    try {
+                        kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestTest(storedData));
+                    } catch (IOException ex) {
+                        Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        }
+        if (contentsToPut != null) {
+            for (Node storageNode : closest) {
+                if (kademliaRef.myself.equals(storageNode)) {
+                    byte[] temp = new byte[contLen - contOffset];
+                    for (int i = 0; i < temp.length; i++) {
+                        temp[i] = contentsToPut[i + contOffset];
+                    }
+                    kademliaRef.storedData.put(key, temp, lastMod);
+                    console.log("done, stored locally");
+                } else {
+                    try {
+                        kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod, contOffset, contLen));
+                        console.log("done, stored on " + storageNode);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+            console.log("done, stored on all " + closest.size());
+            if (kademliaRef.max != 0) {
+                kademliaRef.progress++;
+                if (kademliaRef.progress == kademliaRef.max) {
+                    console.log("All done storing");
+                    kademliaRef.max = 0;
+                    if (!Kademlia.noGUI) {
+                        DataGUITab.updateProgressBar(1);
+                    }
+                } else {
+                    final float progressPercentage = ((float) (kademliaRef.progress)) / ((float) (kademliaRef.max));
+                    if (!Kademlia.noGUI) {
+                        DataGUITab.updateProgressBar(progressPercentage);
+                    }
+                    final int width = 50; // progress bar width in chars
+                    System.out.print("\r[");
+                    int i = 0;
+                    for (; i <= (int) (progressPercentage * width); i++) {
+                        System.out.print(".");
+                    }
+                    for (; i < width; i++) {
+                        System.out.print(" ");
+                    }
+                    System.out.print("]");
+                }
+            }
+        }
+    }
     public void foundNodes(ArrayList<Node> nodes) {
         if (isLookupFinished()) {
             return;
         }
         boolean didDiscoverNewNode = false;
-        long worstDistance = closest.isEmpty() ? Long.MAX_VALUE : closest.get(closest.size() - 1).nodeid ^ key;
         if (isKeyLookup) {
             while (nodes.contains(kademliaRef.myself)) {
                 nodes.remove(kademliaRef.myself);
             }
         }
+        long worstDistance = closest.isEmpty() ? Long.MAX_VALUE : closest.get(closest.size() - 1).nodeid ^ key;
         for (Node newNode : nodes) {
             if (!closest.contains(newNode) && !alreadyAsked.contains(newNode)) {
                 long distance = newNode.nodeid ^ key;
-                boolean shouldAdd = distance <= worstDistance;
+                boolean betterDist = distance <= worstDistance;
+                boolean addAnyway = closest.size() < Kademlia.k;
                 if (Kademlia.verbose) {
-                    console.log("Lookup for " + key + " has new node " + newNode + " and " + shouldAdd);
+                    console.log("Lookup for " + key + " has new node " + newNode + " and " + betterDist);
                 }
-                if (shouldAdd) {
+                if (betterDist || addAnyway) {
                     closest.add(newNode);
                     didDiscoverNewNode = true;
+                    if (!betterDist) {
+                        worstDistance = distance;
+                    }
                 }
             }
         }
@@ -275,12 +300,17 @@ public class Lookup {
             if (Kademlia.verbose) {
                 console.log("Lookup for " + key + " is recursively executing");
             }
-            execute();
+            executeStep();
         }
     }
     public void onConnectionError() {
         if (!isLookupFinished()) {
-            execute();//if there was an error with one of the requests but we aren't done, try try again
+            new Thread() {
+                @Override
+                public void run() {
+                    executeStep();//if there was an error with one of the requests but we aren't done, try try again
+                }
+            }.start();
         }
     }
     public void foundValue(byte[] value) {
