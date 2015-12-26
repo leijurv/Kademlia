@@ -344,7 +344,7 @@ public class Lookup {
         }
     }
     public void foundValue(byte[] value) {
-        if (value != null) {
+        if (this.value != null) {
             if (Arrays.hashCode(value) == Arrays.hashCode(this.value)) {
                 return;
             }
