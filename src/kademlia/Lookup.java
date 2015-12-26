@@ -33,6 +33,9 @@ public class Lookup {
     private String storageLocation;
     private long lastMod;
     private final StoredData storedData;
+    private final Object lock = new Object();
+    private volatile boolean hasDoneStore = false;
+    private volatile int numFailedThreads = 0;
     public static long maskedHash(byte[] o, DDT ddt) {
         return maskedHash(o, 0, o.length, ddt);
     }
@@ -114,18 +117,20 @@ public class Lookup {
         this.isKeyLookup = isKeyLookup;
     }
     public Node popFirstNonUsed() {
-        for (Node n : closest) {
-            if (!alreadyAsked.contains(n) && !kademliaRef.myself.equals(n)) {
-                return n;
+        synchronized (lock) {
+            for (Node n : closest) {
+                if (!alreadyAsked.contains(n) && !kademliaRef.myself.equals(n)) {
+                    return n;
+                }
             }
         }
         return null;
     }
     public boolean isLookupFinished() {
         if (isKeyLookup) {
-            return value != null;
+            return value != null || hasDoneStore;
         } else {
-            return finalResult != null;
+            return finalResult != null || hasDoneStore;
         }
     }
     public void execute() {
@@ -133,42 +138,58 @@ public class Lookup {
             executeStep();
         }
     }
+    private void normalizeClosest() {
+        synchronized (lock) {
+            if (closest == null) {
+                if (Kademlia.verbose) {
+                    console.log("Starting lookup for " + key + " for the first time");
+                }
+                closest = kademliaRef.findNClosest(Kademlia.k, key);
+            }
+            closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ key).compareTo(o2.nodeid ^ key));
+            while (closest.size() > Kademlia.k) {
+                Node removed = closest.remove(closest.size() - 1);
+                if (Kademlia.verbose) {
+                    console.log("Removed from consideration " + removed + " for key " + key);
+                }
+            }
+        }
+    }
     private void executeStep() {
+        //note: the reason why the synchronized blocks are in such weird/roundabout places is that I really really really don't want any network calls to be in a synchronized block.
         if (isLookupFinished()) {
             console.log("leave me alone im already done");
             return;
         }
-        if (closest == null) {
-            if (Kademlia.verbose) {
-                console.log("Starting lookup for " + key + " for the first time");
-            }
-            closest = kademliaRef.findNClosest(Kademlia.k, key);
-        }
-        closest.sort((Node o1, Node o2) -> new Long(o1.nodeid ^ key).compareTo(o2.nodeid ^ key));
-        while (closest.size() > Kademlia.k) {
-            Node removed = closest.remove(closest.size() - 1);
-            if (Kademlia.verbose) {
-                console.log("Removed from consideration " + removed + " for key " + key);
-            }
-        }
-        for (Node n : closest) {
-            if (Kademlia.verbose) {
-                console.log("lookup is considering: " + n + " " + (n.nodeid ^ key));
-            }
-        }
+        normalizeClosest();
         if (Kademlia.verbose) {
-            console.log(alreadyAsked);
+            synchronized (lock) {
+                for (Node n : closest) {
+                    console.log("lookup is considering: " + n + " " + (n.nodeid ^ key));
+                }
+                console.log(alreadyAsked);
+            }
         }
-        Node node = popFirstNonUsed();
+        Node node;
+        synchronized (lock) {
+            node = popFirstNonUsed();
+            if (node != null) {
+                alreadyAsked.add(node);
+            }
+        }
         if (node == null) {
             if (!isKeyLookup) {
-                onNodeLookupCompleted();
+                synchronized (lock) {
+                    onNodeLookupCompleted();
+                }
             } else {
-                console.log("failed for " + key);
+                numFailedThreads++;
+                if (numFailedThreads == concurrencyLevel) {
+                    console.log("failed for " + key);
+                }
             }
             return;
         }
-        alreadyAsked.add(node);
         new Thread() {
             @Override
             public void run() {
@@ -194,6 +215,10 @@ public class Lookup {
         }
     }
     private void onNodeLookupCompleted() {
+        if (hasDoneStore) {
+            throw new IllegalStateException("Already done store");
+        }
+        hasDoneStore = true;
         if (Kademlia.verbose) {
             console.log("The closest to key " + key + " was " + closest.get(0));
         }
@@ -264,29 +289,31 @@ public class Lookup {
                 nodes.remove(kademliaRef.myself);
             }
         }
-        long worstDistance = closest.isEmpty() ? Long.MAX_VALUE : closest.get(closest.size() - 1).nodeid ^ key;
-        for (Node newNode : nodes) {
-            if (!closest.contains(newNode) && !alreadyAsked.contains(newNode)) {
-                long distance = newNode.nodeid ^ key;
-                boolean betterDist = distance <= worstDistance;
-                boolean addAnyway = closest.size() < Kademlia.k;
-                if (Kademlia.verbose) {
-                    console.log("Lookup for " + key + " has new node " + newNode + " and " + betterDist);
-                }
-                if (betterDist || addAnyway) {
-                    closest.add(newNode);
-                    didDiscoverNewNode = true;
-                    if (!betterDist) {
-                        worstDistance = distance;
+        synchronized (lock) {
+            long worstDistance = closest.isEmpty() ? Long.MAX_VALUE : closest.get(closest.size() - 1).nodeid ^ key;
+            for (Node newNode : nodes) {
+                if (!closest.contains(newNode) && !alreadyAsked.contains(newNode)) {
+                    long distance = newNode.nodeid ^ key;
+                    boolean betterDist = distance <= worstDistance;
+                    boolean addAnyway = closest.size() < Kademlia.k;
+                    if (Kademlia.verbose) {
+                        console.log("Lookup for " + key + " has new node " + newNode + " and " + betterDist);
+                    }
+                    if (betterDist || addAnyway) {
+                        closest.add(newNode);
+                        didDiscoverNewNode = true;
+                        if (!betterDist) {
+                            worstDistance = distance;
+                        }
                     }
                 }
             }
-        }
-        for (Node closest1 : closest) {
-            if (closest1.nodeid == key) {
-                finalResult = closest1;
-                onCompletion();
-                return;
+            for (Node closest1 : closest) {
+                if (closest1.nodeid == key) {
+                    finalResult = closest1;
+                    onCompletion();
+                    return;
+                }
             }
         }
         if (!didDiscoverNewNode) {
