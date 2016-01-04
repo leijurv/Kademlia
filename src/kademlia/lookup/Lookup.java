@@ -33,7 +33,7 @@ public abstract class Lookup {
     protected ArrayList<Node> closest;
     private final ArrayList<Node> alreadyAsked = new ArrayList<>();
     protected final boolean isKeyLookup;
-    private Node finalResult;
+    protected Node finalResult;
     private volatile boolean isClosestNormalized = false;
     private final Object lock = new Object();
     private volatile boolean hasDoneStore = false;
