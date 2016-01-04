@@ -3,8 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.lookup;
 
+import kademlia.request.RequestFindValue;
+import kademlia.request.RequestFindNode;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,33 +15,30 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import kademlia.Connection;
+import kademlia.DDT;
+import kademlia.Kademlia;
+import kademlia.Node;
+import kademlia.console;
 
 /**
  *
  * @author leijurv
  */
-public class Lookup {
+public abstract class Lookup {
     public static final int concurrencyLevel = 3;
-    final long key;
-    private final Kademlia kademliaRef;
-    private byte[] value = null;
-    private ArrayList<Node> closest;
+    public final long key;
+    protected final Kademlia kademliaRef;
+    protected byte[] value = null;
+    protected ArrayList<Node> closest;
     private final ArrayList<Node> alreadyAsked = new ArrayList<>();
-    private final boolean isKeyLookup;
+    protected final boolean isKeyLookup;
     private Node finalResult;
-    private byte[] contentsToPut;
-    private int contOffset;
-    private int contLen;
-    private boolean needsToAssemble;
-    private FileAssembly assembly;
-    private String storageLocation;
-    private long lastMod;
-    private final StoredData storedData;
     private volatile boolean isClosestNormalized = false;
     private final Object lock = new Object();
     private volatile boolean hasDoneStore = false;
     private volatile int numFinishedThreads = 0;
-    private Comparator<Node> distanceComparator;
+    private final Comparator<Node> distanceComparator;
     public static long maskedHash(byte[] o, DDT ddt) {
         return maskedHash(o, 0, o.length, ddt);
     }
@@ -66,49 +65,8 @@ public class Lookup {
         }
         return Math.abs(h);
     }
-    public Lookup(long key, Kademlia kademliaRef, StoredData data) {
-        this.distanceComparator = Node.createDistanceComparator(key);
-        this.contLen = 0;
-        this.contentsToPut = null;
-        this.contOffset = 0;
-        this.needsToAssemble = false;
-        this.assembly = null;
-        this.storageLocation = null;
-        this.lastMod = 0;
-        this.closest = null;
-        this.storedData = data;
-        this.isKeyLookup = false;
-        this.key = key;
-        this.kademliaRef = kademliaRef;
-    }
-    public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified) {
-        this(key, kademliaRef, contents, lastModified, 0, contents.length);
-    }
-    public Lookup(long key, Kademlia kademliaRef, byte[] contents, long lastModified, int offset, int length) {
-        this(key, kademliaRef, false);
-        this.lastMod = lastModified;
-        this.contentsToPut = contents;
-        this.contOffset = offset;
-        this.contLen = length;
-    }
-    public Lookup(FileAssembly f, long key, Kademlia kademliaRef) {
-        this(key, kademliaRef, true);
-        this.assembly = f;
-        this.closest = null;
-    }
-    public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup, boolean assemble, String storageLocation) {
-        this(key, kademliaRef, isKeyLookup);
-        this.closest = null;
-        this.storageLocation = storageLocation;
-        this.needsToAssemble = assemble;
-    }
     public Lookup(long key, Kademlia kademliaRef, boolean isKeyLookup) {
         this.distanceComparator = Node.createDistanceComparator(key);
-        this.needsToAssemble = false;
-        this.assembly = null;
-        this.storageLocation = null;
-        this.lastMod = 0;
-        this.storedData = null;
         this.closest = null;
         this.key = key;
         this.kademliaRef = kademliaRef;
@@ -125,10 +83,13 @@ public class Lookup {
         return null;
     }
     public boolean isLookupFinished() {
+        if (hasDoneStore) {
+            return true;
+        }
         if (isKeyLookup) {
-            return value != null || hasDoneStore;
+            return value != null;
         } else {
-            return finalResult != null || hasDoneStore;
+            return finalResult != null;
         }
     }
     public void execute() {
@@ -221,6 +182,7 @@ public class Lookup {
             conn.sendRequest(new RequestFindNode(this));
         }
     }
+    protected abstract void onNodeLookupCompleted0();
     private void onNodeLookupCompleted() {
         if (hasDoneStore) {
             throw new IllegalStateException("Already done store");
@@ -229,72 +191,14 @@ public class Lookup {
         if (Kademlia.verbose) {
             console.log("The closest to key " + key + " was " + closest.get(0));
         }
-        if (storedData != null) {
-            for (Node storageNode : closest) {
-                if (!kademliaRef.myself.equals(storageNode)) {
-                    try {
-                        kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestTest(storedData));
-                    } catch (IOException ex) {
-                        Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        }
-        if (contentsToPut != null) {
-            for (Node storageNode : closest) {
-                if (kademliaRef.myself.equals(storageNode)) {
-                    byte[] temp;
-                    if (contOffset == 0 && contLen == contentsToPut.length) {
-                        temp = contentsToPut;
-                    } else {
-                        temp = new byte[contLen];
-                        System.arraycopy(contentsToPut, contOffset, temp, 0, contLen);
-                    }
-                    kademliaRef.storedData.put(key, temp, lastMod);
-                    console.log("done, stored locally");
-                } else {
-                    try {
-                        kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod, contOffset, contLen));
-                        console.log("done, stored on " + storageNode);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-            console.log("done, stored on all " + closest.size());
-            if (kademliaRef.max != 0) {
-                kademliaRef.progress++;
-                if (kademliaRef.progress == kademliaRef.max) {
-                    console.log("All done storing");
-                    kademliaRef.max = 0;
-                    if (!Kademlia.noGUI) {
-                        DataGUITab.updateProgressBar(1);
-                    }
-                } else {
-                    final float progressPercentage = ((float) (kademliaRef.progress)) / ((float) (kademliaRef.max));
-                    if (!Kademlia.noGUI) {
-                        DataGUITab.updateProgressBar(progressPercentage);
-                    }
-                    final int width = 50; // progress bar width in chars
-                    System.out.print("\r[");
-                    int i = 0;
-                    for (; i <= (int) (progressPercentage * width); i++) {
-                        System.out.print(".");
-                    }
-                    for (; i < width; i++) {
-                        System.out.print(" ");
-                    }
-                    System.out.print("]");
-                }
-            }
-        }
+        onNodeLookupCompleted0();
     }
     public void foundNodes(ArrayList<Node> nodes) {
         if (isLookupFinished()) {
             return;
         }
         boolean didDiscoverNewNode = false;
-        if (isKeyLookup) {
+        if (isKeyLookup) {//we assume that we don't have it, because otherwise this lookup really shouldn't even have been started in the first place
             while (nodes.contains(kademliaRef.myself)) {
                 nodes.remove(kademliaRef.myself);
             }
@@ -363,28 +267,5 @@ public class Lookup {
         this.value = value;
         onCompletion();
     }
-    public void onCompletion() {
-        if (needsToAssemble) {
-            console.log("Received metadata. Starting assembly...");
-            Kademlia.threadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        new FileAssembly(value, kademliaRef, storageLocation).assemble();
-                    } catch (IOException ex) {
-                        Logger.getLogger(Lookup.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            });
-            return;
-        }
-        if (assembly != null) {
-            assembly.onPartCompleted(key, value, true);
-            return;
-        }
-        if (!Kademlia.noGUI) {
-            DataGUITab.incomingKeyValueData(key, value);
-        }
-        console.log((isKeyLookup ? new String(value) : finalResult));
-    }
+    protected abstract void onCompletion();
 }

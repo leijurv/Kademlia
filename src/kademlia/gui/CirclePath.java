@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.gui;
 
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Path;

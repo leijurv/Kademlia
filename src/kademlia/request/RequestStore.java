@@ -3,11 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import kademlia.Connection;
+import kademlia.Kademlia;
+import kademlia.console;
 
 /**
  *
@@ -30,8 +33,8 @@ public class RequestStore extends Request {
     public RequestStore(long key, byte[] value, long lastModified) {
         this(key, value, lastModified, 0, value.length);
     }
-    protected RequestStore(long requestID, DataInputStream in) throws IOException {
-        super(requestID, (byte) 1);
+    protected RequestStore(DataInputStream in) throws IOException {
+        super(in, (byte) 1);
         this.key = in.readLong();
         this.lastModified = in.readLong();
         this.length = in.readInt();

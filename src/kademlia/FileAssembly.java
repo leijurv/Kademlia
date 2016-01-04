@@ -5,6 +5,9 @@
  */
 package kademlia;
 
+import kademlia.lookup.LookupFileAssemblyChunk;
+import kademlia.lookup.Lookup;
+import kademlia.gui.DataGUITab;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -29,8 +32,7 @@ public class FileAssembly {
     public FileAssembly(byte[] header, Kademlia kademliaRef, String storageLocation) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(header));
         int size = in.readInt();
-        int partSize = in.readInt();
-        int partitions = (int) Math.ceil(((double) size) / ((double) partSize));
+        int partitions = in.readInt();
         hashes = new long[partitions];
         for (int i = 0; i < partitions; i++) {
             hashes[i] = in.readLong();
@@ -56,7 +58,7 @@ public class FileAssembly {
                         onPartCompleted(hash, pos, false);
                     } else {
                         console.log("LOOKING FOR " + hash);
-                        new Lookup(FileAssembly.this, hash, kademliaRef).execute();
+                        new LookupFileAssemblyChunk(hash, kademliaRef, FileAssembly.this).execute();
                     }
                 }
             });

@@ -3,12 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import kademlia.Connection;
+import kademlia.Kademlia;
+import kademlia.lookup.Lookup;
+import kademlia.Node;
+import kademlia.console;
 
 /**
  *
@@ -22,8 +27,8 @@ public class RequestFindNode extends Request {
         this.nodeid = lookup.key;
         this.lookup = lookup;
     }
-    protected RequestFindNode(long requestID, DataInputStream in) throws IOException {
-        super(requestID, (byte) 2);
+    protected RequestFindNode(DataInputStream in) throws IOException {
+        super(in, (byte) 2);
         this.nodeid = in.readLong();
         this.lookup = null;
     }

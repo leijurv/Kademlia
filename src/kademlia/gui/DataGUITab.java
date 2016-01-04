@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.gui;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +35,9 @@ import javafx.scene.layout.RowConstraints;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import kademlia.DDT;
+import kademlia.Kademlia;
+import kademlia.lookup.Lookup;
 
 /**
  *

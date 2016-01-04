@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.gui;
 
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
+import kademlia.Kademlia;
 
 /**
  *

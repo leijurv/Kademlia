@@ -18,9 +18,12 @@ import java.util.logging.Logger;
  * @author aidan
  */
 public class ControlSocket {
+    private final ServerSocket server;
     // Syntax is [int number of parameters, [int length of each parameter], protocol, id, [parameters]]
     ControlSocket(int port, Kademlia kad) throws IOException {
-        ServerSocket server = new ServerSocket(port);
+        server = new ServerSocket(port);
+    }
+    public void run() {
         new Thread() {
             @Override
             public void run() {

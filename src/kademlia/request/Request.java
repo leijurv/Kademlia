@@ -3,12 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
+import kademlia.Connection;
+import kademlia.Kademlia;
 
 /**
  *
@@ -17,22 +19,23 @@ import java.security.SecureRandom;
 public abstract class Request {
     private static final SecureRandom sc = new SecureRandom();
     final byte requestType;
-    final long requestID;
+    public final long requestID;
     public volatile long sendDate = -1;
     public volatile long responseDate = -1;
     private volatile boolean hasErrored = false;
+    private final Object hasErroredLock = new Object();
     protected Request(byte requestType) {
         this.requestType = requestType;
         requestID = sc.nextLong();
     }
-    protected Request(long requestID, byte requestType) throws IOException {
-        this.requestID = requestID;
+    protected Request(DataInputStream in, byte requestType) throws IOException {
+        this.requestID = in.readLong();
         this.requestType = requestType;
     }
     public void send(DataOutputStream out) throws IOException {
         out.writeBoolean(false);//isResp
-        out.writeLong(requestID);
         out.writeByte(requestType);
+        out.writeLong(requestID);
         sendData(out);
     }
     public abstract void sendData(DataOutputStream out) throws IOException;
@@ -40,26 +43,29 @@ public abstract class Request {
     public abstract void onResponse(DataInputStream in, Connection conn) throws IOException;
     protected abstract void onError0(Connection conn);
     public void onError(Connection conn) {//we really can't have dupes of this
-        if (hasErrored) {
-            throw new IllegalStateException("I have already errored. " + this);
+        synchronized (hasErroredLock) {//we really really really can't have dupes of this
+            //is a object lock overkill for a boolean thats already volatile? maybe...
+            //maybe.
+            if (hasErrored) {
+                throw new IllegalStateException("I have already errored. " + this);
+            }
+            hasErrored = true;
         }
-        hasErrored = true;
         onError0(conn);
     }
     public static Request read(DataInputStream in) throws IOException {
-        long requestID = in.readLong();
         byte requestType = in.readByte();
         switch (requestType) {
             case 0:
-                return new RequestPing(requestID, in);
+                return new RequestPing(in);
             case 1:
-                return new RequestStore(requestID, in);
+                return new RequestStore(in);
             case 2:
-                return new RequestFindNode(requestID, in);
+                return new RequestFindNode(in);
             case 3:
-                return new RequestFindValue(requestID, in);
+                return new RequestFindValue(in);
             case 4:
-                return new RequestTest(requestID, in);
+                return new RequestTest(in);
             default:
                 throw new IOException("Invalid request type " + requestType);
         }

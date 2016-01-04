@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import kademlia.lookup.Lookup;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -93,8 +94,13 @@ public class DataStore {
                 try {
                     while (true) {
                         int numStored = storedData.keySet().size();
-                        int waitTime = fullRefreshInterval / Math.max(numStored, 1);
-                        Thread.sleep(waitTime + rand.nextInt(waitTime / 10) + minwait);
+                        int coefficient = Math.max(numStored, 1);
+                        int waitTime = fullRefreshInterval / coefficient;
+                        int finalWaitTime = waitTime + rand.nextInt(waitTime / 10) + minwait;
+                        int avgWaitTime = waitTime + waitTime / 20 + minwait;
+                        int totalWaitTimePredicted = avgWaitTime * coefficient;
+                        console.log("wait status: " + numStored + " " + waitTime + " " + finalWaitTime + " " + avgWaitTime + " " + totalWaitTimePredicted);
+                        Thread.sleep(finalWaitTime);
                         if (numStored == 0) {
                             continue;
                         }
@@ -210,10 +216,10 @@ public class DataStore {
         }
     }
     public void put(long key, byte[] value, long lastModified) {
-        DDT ddt = DDT.getFromMask(key);
+        DDT ddt = DDT.getFromKey(key);
         long hash = Lookup.maskedHash(value, DDT.CHUNK);
         if (key != hash && ddt == DDT.CHUNK) {
-            console.log("THIS IS BAD BB. DDT IS CHUNK BUT IT DONT MATCH");
+            throw new IllegalStateException("THIS IS BAD BB. DDT IS CHUNK BUT IT DONT MATCH");
         }
         console.log((key != hash ? "BAD HASH" : "GOOD KUSH") + " Executing store request for key " + key + " and data with len " + value.length + " and value hash " + hash + " and last modified " + lastModified + " and DDT " + ddt);
         synchronized (lock) {
@@ -265,8 +271,10 @@ public class DataStore {
                 }
                 storedData.clear();
                 for (int i = 0; i < num; i++) {
-                    storedData.put(data[i].key, data[i]);
+                    storedData.put(data[i].key, data[i]);//todo: at this point check if the file exists
                 }
+                //todo: at this point check if there are extra storedData in the data storage folder that we don't have metadata for
+                //and if so, delete them
             } catch (IOException ex) {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
             }

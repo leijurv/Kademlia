@@ -3,11 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import kademlia.Connection;
+import kademlia.Kademlia;
+import kademlia.StoredData;
+import kademlia.console;
 
 /**
  *
@@ -21,8 +25,8 @@ public class RequestTest extends Request {
         this.storedData = storedData;
         this.key = storedData.key;
     }
-    protected RequestTest(long requestID, DataInputStream in) throws IOException {
-        super(requestID, (byte) 4);
+    protected RequestTest(DataInputStream in) throws IOException {
+        super(in, (byte) 4);
         this.storedData = null;
         this.key = in.readLong();
     }
@@ -35,9 +39,9 @@ public class RequestTest extends Request {
         StoredData data = kademliaRef.storedData.getMetadata(key);
         out.writeBoolean(data != null);
         if (data != null) {
-            out.writeLong(data.hash);
-            out.writeLong(data.lastModified);
-            out.writeLong(data.size);
+            out.writeLong(data.getHash());
+            out.writeLong(data.getLastModified());
+            out.writeLong(data.getSize());
         }
     }
     @Override
@@ -47,13 +51,13 @@ public class RequestTest extends Request {
             long hash = in.readLong();
             long lastModified = in.readLong();
             long size = in.readLong();
-            boolean sameHash = hash == storedData.hash;
-            boolean sameSize = size == storedData.size;
-            boolean sameLM = lastModified == storedData.lastModified;
+            boolean sameHash = hash == storedData.getHash();
+            boolean sameSize = size == storedData.getSize();
+            boolean sameLM = lastModified == storedData.getLastModified();
             if (sameHash && sameSize && sameLM) {
                 console.log("we good for " + conn + " and " + key);
             } else {
-                boolean areWeNewer = storedData.lastModified > lastModified;
+                boolean areWeNewer = storedData.getLastModified() > lastModified;
                 console.log("we not good for " + conn + " and " + key + ": " + sameHash + " " + sameSize + " " + sameLM + " " + areWeNewer);
                 if (sameLM) {
                     console.log("weird. same date for last modified, but different hash and/or size... did two people modify this file at the exact same millisecond?");

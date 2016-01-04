@@ -18,10 +18,10 @@ public class Node {
     public final long nodeid;
     public final String host;
     public final int port;
-    public volatile long lastSuccessfulDataTransfer = 0;
+    public volatile long lastSuccessfulDataTransferDate = 0;
     public Node(DataInputStream in) throws IOException {
         this.nodeid = in.readLong();
-        this.host = in.readUTF();
+        this.host = in.readUTF();//todo replace with some other way of representing hostname. maybe use inetaddress or something
         this.port = in.readInt();
     }
     public void write(DataOutputStream out) throws IOException {
@@ -60,7 +60,7 @@ public class Node {
             return false;
         }
         if (!sameHost(other)) {
-            console.log(this + " and " + obj + " are being incorrectly compared as being the same");
+            throw new IllegalStateException(this + " and " + obj + " are being incorrectly compared as being the same");
         }
         return true;
     }

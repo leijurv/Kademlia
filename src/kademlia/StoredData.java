@@ -5,6 +5,10 @@
  */
 package kademlia;
 
+import kademlia.lookup.LookupTestStoredData;
+import kademlia.lookup.Lookup;
+import kademlia.request.RequestStore;
+import kademlia.gui.DataGUITab;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -19,7 +23,7 @@ import java.util.logging.Logger;
  * @author leijurv
  */
 public class StoredData {
-    final long key;
+    public final long key;
     final DDT ddt;
     byte[] data;
     long hash;
@@ -49,12 +53,12 @@ public class StoredData {
         this.lastRetreived = in.readLong();
         this.lastTested = in.readLong();
         this.data = null;
-        this.ddt = DDT.getFromMask(key);
+        this.ddt = DDT.getFromKey(key);
     }
     public StoredData(long key, byte[] data, long lastModified, DataStore dataStoreRef) {
         this.dataStoreRef = dataStoreRef;
         this.key = key;
-        this.ddt = DDT.getFromMask(key);
+        this.ddt = DDT.getFromKey(key);
         this.size = data.length;
         this.data = data;
         this.hash = Lookup.unmaskedHash(data);
@@ -105,6 +109,15 @@ public class StoredData {
             this.lastModified = lastModified;
         }
         beginSave();
+        Kademlia.threadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                if (!Kademlia.noGUI) {
+                    DataGUITab.incomingKeyValueData(key, newData);//this should cause instant updates when we are storing the data locally
+                }
+                dataStoreRef.kademliaRef.subManager.onUpdateToKey(StoredData.this);
+            }
+        });
     }
     public void beginSave() {
         Kademlia.threadPool.execute(new Runnable() {
@@ -129,9 +142,18 @@ public class StoredData {
     }
     public void runTest() {
         lastTested = System.currentTimeMillis();
-        new Lookup(key, dataStoreRef.kademliaRef, StoredData.this).execute();
+        new LookupTestStoredData(dataStoreRef.kademliaRef, StoredData.this).execute();
     }
     public void storeCopyIn(Connection conn) {
-        conn.sendRequest(new RequestStore(key, getData0(), lastModified));
+        conn.sendRequest(new RequestStore(key, getData0(), lastModified));//getdata0 because we dont want to update lastRetreived
+    }
+    public long getHash() {//we have to use getters here, because public non-final primitives are a BAD idea
+        return hash;
+    }
+    public long getLastModified() {
+        return lastModified;
+    }
+    public int getSize() {
+        return size;
     }
 }

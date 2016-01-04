@@ -15,14 +15,14 @@ public enum DDT {
     DDT(byte mask) {
         this.mask = mask;
     }
-    public static DDT getFromMask(long k) {
-        byte mask = (byte) (k & 0xff);
+    public static DDT getFromKey(long key) {
+        byte mask = (byte) (key & 0xff);
         for (DDT ddt : DDT.values()) {
             if (ddt.mask == mask) {
                 return ddt;
             }
         }
-        throw new IllegalStateException("bad mask");
+        throw new IllegalStateException("bad mask " + mask + " for key " + key);
     }
     public long mask(long k) {
         return (k & ~0xff) | mask;

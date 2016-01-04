@@ -5,6 +5,7 @@
  */
 package kademlia;
 
+import kademlia.request.RequestPing;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -66,10 +67,10 @@ public class Bucket {
                 return true;
             }
             long now = System.currentTimeMillis();
-            nodeids.sort((Long o1, Long o2) -> new Long(nodes.get(o1).lastSuccessfulDataTransfer).compareTo(nodes.get(o2).lastSuccessfulDataTransfer));
+            nodeids.sort((Long o1, Long o2) -> new Long(nodes.get(o1).lastSuccessfulDataTransferDate).compareTo(nodes.get(o2).lastSuccessfulDataTransferDate));
             for (long nodeid : nodeids) {
                 if (Kademlia.verbose) {
-                    console.log("Node id: " + nodeid + ", nodedata: " + nodes.get(nodeid) + ", lastsuc: " + nodes.get(nodeid).lastSuccessfulDataTransfer);
+                    console.log("Node id: " + nodeid + ", nodedata: " + nodes.get(nodeid) + ", lastsuc: " + nodes.get(nodeid).lastSuccessfulDataTransferDate);
                 }
             }
             replacementCache.add(node);
@@ -126,7 +127,7 @@ public class Bucket {
         nodeids.remove(n.nodeid);
         nodes.remove(n.nodeid);
         if (nodeids.size() < Kademlia.k && !replacementCache.isEmpty()) {
-            replacementCache.sort((Node o1, Node o2) -> new Long(o1.lastSuccessfulDataTransfer).compareTo(o2.lastSuccessfulDataTransfer));
+            replacementCache.sort((Node o1, Node o2) -> new Long(o1.lastSuccessfulDataTransferDate).compareTo(o2.lastSuccessfulDataTransferDate));
             Node toAdd = replacementCache.get(replacementCache.size() - 1);
             nodeids.add(toAdd.nodeid);
             nodes.put(toAdd.nodeid, toAdd);

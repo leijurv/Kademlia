@@ -3,11 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kademlia;
+package kademlia.request;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import kademlia.Connection;
+import kademlia.Kademlia;
 
 /**
  *
@@ -17,8 +19,8 @@ public class RequestPing extends Request {
     public RequestPing() {
         super((byte) 0);
     }
-    protected RequestPing(long requestID, DataInputStream in) throws IOException {
-        super(requestID, (byte) 0);
+    protected RequestPing(DataInputStream in) throws IOException {
+        super(in, (byte) 0);
     }
     @Override
     public void sendData(DataOutputStream out) throws IOException {
@@ -28,7 +30,7 @@ public class RequestPing extends Request {
     }
     @Override
     public void onResponse(DataInputStream in, Connection conn) throws IOException {
-        conn.node.lastSuccessfulDataTransfer = System.currentTimeMillis();
+        conn.node.lastSuccessfulDataTransferDate = System.currentTimeMillis();
     }
     @Override
     public void onError0(Connection conn) {

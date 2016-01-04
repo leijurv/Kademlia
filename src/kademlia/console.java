@@ -5,6 +5,8 @@
  */
 package kademlia;
 
+import kademlia.gui.DebugGUITab;
+
 /**
  *
  * @author aidan

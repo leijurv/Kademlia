@@ -5,11 +5,16 @@
  */
 package kademlia;
 
+import kademlia.request.Request;
+import kademlia.request.RequestPing;
+import kademlia.gui.ConnectionGUITab;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -85,7 +90,7 @@ public class Connection {
                     try {
                         Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
                         if (isRequestStillPending(r)) {
-                            console.log(this + " TOOK MORE THAN " + kademliaRef.settings.pingTimeoutSec + " SECONDS TO RESPOND TO" + r + ". CLOSING CONNECTION.");
+                            console.log(this + " TOOK MORE THAN " + kademliaRef.settings.pingTimeoutSec + " SECONDS TO RESPOND TO " + r + ". CLOSING CONNECTION.");
                             Connection.this.close();
                             //dont call r.onError here because closing the connection will do it and we dont want duplicate calls
                         }
@@ -98,10 +103,10 @@ public class Connection {
         } catch (Exception ex) {//yes, catch ALL exceptions. no matter what the exception is, we need this catch to run.
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
             console.log("Exception while sending request " + r);
+            pendingRequests.remove(r.requestID);
             r.onError(this);
             //technically I'm pretty sure that an IOException here means that the entire connection is closed...
             //TODO
-            pendingRequests.remove(r.requestID);
             return false;
         }
     }
@@ -121,12 +126,15 @@ public class Connection {
         } catch (IOException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
         }
-        for (long requestid : pendingRequests.keySet()) {
-            pendingRequests.get(requestid).onError(this);
+        for (long requestid : new ArrayList<>(pendingRequests.keySet())) {
+            //if this weren't here we would have hella memory leaks
+            //because some of the requests contain references to lookup objects / storeddata objects
+            Request r = pendingRequests.remove(requestid);//crucial to remove as we go through the list, instead of getting and clearing at the end
+            if (r == null) {
+                throw new ConcurrentModificationException("god damn you");
+            }
+            r.onError(this);
         }
-        pendingRequests.clear();//this is actually fairly crucial
-        //if this weren't here we would have hella memory leaks
-        //because some of the requests contain references to lookup objects / storeddata objects
         if (!Kademlia.noGUI) {
             ConnectionGUITab.stoppedConnection(node.nodeid);//LESS LESS importante
         }

@@ -5,6 +5,16 @@
  */
 package kademlia;
 
+import kademlia.lookup.LookupAssemblyMetadata;
+import kademlia.lookup.Lookup;
+import kademlia.lookup.LookupPut;
+import kademlia.lookup.LookupNormalGet;
+import kademlia.lookup.LookupSubscribe;
+import kademlia.sub.SubscriptionManager;
+import kademlia.request.RequestStore;
+import kademlia.gui.GUI;
+import kademlia.gui.ConnectionGUITab;
+import kademlia.gui.DataGUITab;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,6 +31,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -45,12 +56,12 @@ import org.apache.commons.cli.ParseException;
  */
 public class Kademlia {
     public static final ThreadPoolExecutor threadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
-    static final int k = 3;
+    public static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
     static public boolean noGUI = false;
-    int progress = 0;
-    int max = 0;
+    public volatile transient int progress = 0;
+    public volatile transient int max = 0;
     /**
      * @param args the command line arguments
      * @throws java.io.IOException
@@ -130,7 +141,9 @@ public class Kademlia {
                                 host = "localhost";
                                 port = Integer.parseInt(command);
                             }
-                            kad.handleSocket(new Socket(host, port));
+                            Socket s = new Socket(host, port);
+                            s.getOutputStream().write(0);
+                            kad.handleSocket(s);
                             break;
                         case "list":
                             console.log(kad.connections);
@@ -157,7 +170,7 @@ public class Kademlia {
                                 console.log(new String(cached));
                                 break;
                             }
-                            new Lookup(d, kad, true).execute();
+                            new LookupNormalGet(d, kad).execute();
                             break;
                         case "put":
                             String path = command.substring(0, command.indexOf(" "));
@@ -173,6 +186,9 @@ public class Kademlia {
                             String name = command.substring(0, command.indexOf(" "));
                             String filepath = command.substring(command.indexOf(" ") + 1, command.length());
                             kad.putfile(new File(filepath), name);
+                            break;
+                        case "sub":
+                            new LookupSubscribe(Lookup.maskedHash(command.getBytes(), DDT.STANDARD_PUT_GET), kad).execute();
                             break;
                         case "help":
                             console.log("HELP");
@@ -225,7 +241,7 @@ public class Kademlia {
         console.log();
         console.log();
         console.log();
-        new Lookup(58009, k1, true).execute();
+        new LookupNormalGet(58009, k1).execute();
         Thread.sleep(1000);
         console.log();
         console.log();
@@ -235,7 +251,7 @@ public class Kademlia {
         console.log();
         console.log();
         console.log();
-        new Lookup(58008, k1, true).execute();
+        new LookupNormalGet(58008, k1).execute();
         Thread.sleep(1000);
         System.exit(0);
         //k1tok2.sendRequest(new RequestFindNode(55543543));
@@ -245,12 +261,14 @@ public class Kademlia {
         //console.log("main is done");
     }
     final int port;
-    final Node myself;
+    public final Node myself;
     final Bucket[] buckets;
-    final ArrayList<Connection> connections;
-    final DataStore storedData;
+    public final ArrayList<Connection> connections;
+    public final DataStore storedData;
     final String dataStorageDir;
-    final Settings settings;
+    public final Settings settings;
+    final SubscriptionManager subManager;
+    final HashMap<Node, ClientSubscriber> clientSubManager;
     private volatile boolean shouldSave = true;
     public Kademlia(int port) throws IOException {
         this(port, whatIsMyIp());
@@ -279,6 +297,8 @@ public class Kademlia {
         }
         this.myself = new Node(nodeid, ip, port);
         this.connections = new ArrayList<>();
+        this.subManager = new SubscriptionManager(this);
+        this.clientSubManager = new HashMap<>();
         console.log("Kademlia is using settings: " + settings);
         storedData = new DataStore(this);
         runKademlia();
@@ -341,7 +361,7 @@ public class Kademlia {
             new FileAssembly(caced, this, storPath).assemble();
             return;
         }
-        new Lookup(key, this, true, true, storPath).execute();
+        new LookupAssemblyMetadata(key, this, storPath).execute();
     }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
@@ -354,15 +374,16 @@ public class Kademlia {
             ArrayList<Long> hashes = new ArrayList<>();
             int summedSize = 0;
             boolean wl = false;
-            for (int i = 0; true; i++) {
+            int numParts = 0;
+            while (true) {
                 byte[] y = new byte[partSize];
                 int j = in.read(y);
                 if (j < 0) {
                     if (!wl) {
-                        if (i == 1) {
+                        if (numParts == 1) {
                             console.log("This file was divided into only one part");
                         } else {
-                            if (i == 0) {
+                            if (numParts == 0) {
                                 throw new IllegalStateException("i=0");
                             }
                             console.log("This file was exactly divisible into parts of " + partSize + ", or I messed something up");
@@ -378,34 +399,35 @@ public class Kademlia {
                 }
                 max++;
                 summedSize += j;
+                numParts++;
                 long hash = Lookup.maskedHash(y, 0, j, DDT.CHUNK);
                 hashes.add(hash);
-                console.log("j: " + j + ", i: " + i + ", hash: " + hash);
+                console.log("j: " + j + ", i: " + numParts + ", hash: " + hash);
                 threadPool.execute(new Runnable() {
                     @Override
                     public void run() {
-                        new Lookup(hash, Kademlia.this, y, System.currentTimeMillis(), 0, j).execute();
+                        new LookupPut(hash, Kademlia.this, y, System.currentTimeMillis(), 0, j).execute();
                     }
                 });
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             console.log("Dividing file of size " + summedSize + " into " + hashes.size() + " partitions of size " + partSize);
             ByteArrayOutputStream theData = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(theData);
             out.writeInt(summedSize);
-            out.writeInt(partSize);
+            out.writeInt(numParts);
             for (long l : hashes) {
                 out.writeLong(l);
             }
             long metadataKey = Lookup.maskedHash(name.getBytes(), DDT.FILE_METADATA);
-            new Lookup(metadataKey, this, theData.toByteArray(), System.currentTimeMillis()).execute();
+            new LookupPut(metadataKey, this, theData.toByteArray(), System.currentTimeMillis()).execute();
         }
     }
     public void put(long key, byte[] contents) {
-        if (DDT.getFromMask(key) != DDT.STANDARD_PUT_GET) {
-            throw new IllegalStateException("Provided key " + key + " has DDT " + DDT.getFromMask(key) + ", which should be STANDARD_PUT_GET");
+        if (DDT.getFromKey(key) != DDT.STANDARD_PUT_GET) {
+            throw new IllegalStateException("Provided key " + key + " has DDT " + DDT.getFromKey(key) + ", which should be STANDARD_PUT_GET");
         }
-        new Lookup(key, this, contents, System.currentTimeMillis()).execute();
+        new LookupPut(key, this, contents, System.currentTimeMillis()).execute();
     }
     public void put(String key, byte[] contents) {
         put(Lookup.maskedHash(key.getBytes(), DDT.STANDARD_PUT_GET), contents);
@@ -422,7 +444,7 @@ public class Kademlia {
             console.log(new String(cached));
             return;
         }
-        new Lookup(key, this, true).execute();
+        new LookupNormalGet(key, this).execute();
     }
     private Bucket bucketFromNode(Node n) {
         return bucketFromDistance(myself.nodeid ^ n.nodeid);
@@ -436,7 +458,7 @@ public class Kademlia {
                 return i;
             }
         }
-        throw new IllegalStateException("your mom " + distance);
+        throw new IllegalStateException("Literally no possible way this could happen. Cosmic rays man. Apparently the long " + distance + " isn't less than or equal to Long.MAX_VALUE");
     }
     public void addOrUpdate(Node node) {
         if (node.equals(myself)) {
@@ -522,7 +544,18 @@ public class Kademlia {
                             @Override
                             public void run() {
                                 try {
-                                    handleSocket(socket);
+                                    DataInputStream in = new DataInputStream(socket.getInputStream());
+                                    byte requestType = in.readByte();
+                                    switch (requestType) {
+                                        case 0:
+                                            handleSocket(socket);
+                                            break;
+                                        case 7:
+                                            handleSubscriber(socket);
+                                            break;
+                                        default:
+                                            throw new IOException("Invalid request type " + requestType);
+                                    }
                                 } catch (IOException ex) {
                                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                                 }
@@ -534,6 +567,15 @@ public class Kademlia {
                 }
             }
         }.start();
+    }
+    public void handleSubscriber(Socket s) throws IOException {
+        subManager.onSubscriberSocket(s);
+    }
+    public ClientSubscriber getClientSubscriberToNode(Node n) throws IOException {
+        if (clientSubManager.get(n) == null) {
+            clientSubManager.put(n, new ClientSubscriber(n));
+        }
+        return clientSubManager.get(n);
     }
     public Connection getConnectionToNode(Node n) {
         for (Connection conn : connections) {
@@ -595,15 +637,16 @@ public class Kademlia {
                 throw new IllegalArgumentException("can't make a connection to yourself");
             }
             Socket s = new Socket(node.host, node.port);
+            s.getOutputStream().write(0);//connection mode is normal
             Connection conn = handleSocket(s);
-            if (conn.node.nodeid != node.nodeid || !conn.node.sameHost(node)) {
+            if (conn.node.nodeid != node.nodeid || !conn.node.sameHost(node)) {//todo think long and hard about what the behavior should be in this case
                 s.close();//this will trigger an IOException to remove conn from the list
                 heyThisNodeIsBeingAnnoying(node);
                 heyThisNodeIsBeingAnnoying(conn.node);
                 throw new IllegalStateException("Tried to connect to " + node + " and they said they were " + conn.node);
             }
             return conn;
-        } catch (IllegalArgumentException | IOException | IllegalStateException e) {
+        } catch (IOException | IllegalStateException e) {
             console.log("Unable to establish connection to " + node);
             Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, e);
             //if error while establishing connection, node is probably down
