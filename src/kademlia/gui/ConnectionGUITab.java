@@ -5,10 +5,11 @@
  */
 package kademlia.gui;
 
-
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -35,22 +36,17 @@ import kademlia.Kademlia;
  * @author aidan
  */
 public class ConnectionGUITab extends Tab {
-
     private static Kademlia kad;
     private static Circle selfCircle;
     private static HashMap<Long, CirclePath> connectionsCircle;
     private static Pane canvas;
     private static Stage primaryStage;
-
     ConnectionGUITab(Stage primaryStage, Kademlia kademliaRef) {
         super();
-
         this.primaryStage = primaryStage;
-
         kad = kademliaRef;
         this.setText("Connections");
         this.setClosable(false);
-
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_CENTER);
         grid.setHgap(10);
@@ -67,7 +63,6 @@ public class ConnectionGUITab extends Tab {
             grid.getRowConstraints().add(row);
         }
         connectionsCircle = new HashMap<>();
-
         canvas = new Pane();
         selfCircle = new Circle(15, Color.BLUE);
         selfCircle.relocate(150, 150);
@@ -93,11 +88,13 @@ public class ConnectionGUITab extends Tab {
                 if (hostnameTextField.getText().length() == 0 || portTextField.getText().length() == 0) {
                     return;
                 }
+                Socket s;
                 try {
-                    Socket s = new Socket(hostnameTextField.getText(), Integer.parseInt(portTextField.getText()));
+                    s = new Socket(hostnameTextField.getText(), Integer.parseInt(portTextField.getText()));
                     s.getOutputStream().write((byte) 0);
                     kad.handleSocket(s);
                 } catch (IOException ex) {
+                    Logger.getLogger(ConnectionGUITab.class.getName()).log(Level.SEVERE, null, ex);
                     Alert alert = new Alert(Alert.AlertType.ERROR, ex.getLocalizedMessage());
                     alert.show();
                 }
@@ -106,11 +103,9 @@ public class ConnectionGUITab extends Tab {
             }
         });
         grid.add(connectBtn, 4, 5);
-
         //Tab
         this.setContent(grid);
     }
-
     public static void addConnection() {
         Platform.runLater(new Runnable() {
             @Override
@@ -137,7 +132,6 @@ public class ConnectionGUITab extends Tab {
                     }
                     double xCoord = (Math.cos(angle) * 100 + 165) - 10;
                     double yCoord = (Math.sin(angle) * 100 + 165) - 10;
-
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).circle.relocate(xCoord, yCoord);
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).path.getElements().clear();
                     connectionsCircle.get(kad.connections.get(i).node.nodeid).path.getElements().add(new MoveTo(165, 165));
@@ -148,7 +142,6 @@ public class ConnectionGUITab extends Tab {
             }
         });
     }
-
     public static void stoppedConnection(long nodeid) {
         Platform.runLater(new Runnable() {
             @Override
