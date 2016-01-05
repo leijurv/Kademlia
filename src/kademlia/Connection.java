@@ -67,38 +67,26 @@ public class Connection {
         System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
         System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
         System.out.println("LENGTH: " + sharedIN.length);
-        Cipher rc4Encrypt;
         try {
-            rc4Encrypt = Cipher.getInstance("RC4");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
-            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("lol");
-        }
-        SecretKeySpec rc4KeyEncrypt = new SecretKeySpec(sharedOUT, "RC4");
-        try {
+            Cipher rc4Encrypt = Cipher.getInstance("RC4");
+            SecretKeySpec rc4KeyEncrypt = new SecretKeySpec(sharedOUT, "RC4");
             rc4Encrypt.init(Cipher.ENCRYPT_MODE, rc4KeyEncrypt);
-        } catch (InvalidKeyException ex) {
-            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("lol");
-        }
-        Cipher rc4Decrypt;
-        try {
-            rc4Decrypt = Cipher.getInstance("RC4");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
-            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("lol");
-        }
-        SecretKeySpec rc4KeyDecrypt = new SecretKeySpec(sharedIN, "RC4");
-        try {
+            Cipher rc4Decrypt = Cipher.getInstance("RC4");
+            SecretKeySpec rc4KeyDecrypt = new SecretKeySpec(sharedIN, "RC4");
             rc4Decrypt.init(Cipher.DECRYPT_MODE, rc4KeyDecrypt);
-        } catch (InvalidKeyException ex) {
+            this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
+            this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
+            this.pendingRequests = new HashMap<>();
+            this.kademliaRef = kademlia;
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("lol");
+            throw new IOException("haha");
         }
-        this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
-        this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
-        this.pendingRequests = new HashMap<>();
-        this.kademliaRef = kademlia;
+        long d = 45378534268293459L;
+        out.writeLong(d);
+        if (in.readLong() != d) {
+            throw new IOException("bad magic");
+        }
     }
     public void doListen() throws IOException {
         Kademlia.threadPool.execute(new Runnable() {
