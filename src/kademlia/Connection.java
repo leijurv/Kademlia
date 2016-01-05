@@ -74,12 +74,12 @@ public class Connection {
             rc4Decrypt.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sharedIN, "RC4"));
             this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
             this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
-            this.pendingRequests = new HashMap<>();
-            this.kademliaRef = kademlia;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException ex) {
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
             throw new IOException("haha");
         }
+        this.pendingRequests = new HashMap<>();
+        this.kademliaRef = kademlia;
         long d = 45378534268293459L;
         out.writeLong(d);
         if (in.readLong() != d) {
