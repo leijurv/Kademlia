@@ -13,12 +13,21 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  *
@@ -33,11 +42,61 @@ public class Connection {
     public final Kademlia kademliaRef;
     private final Object outLock = new Object();
     private volatile boolean isStillRunning = true;
+    private final SecureRandom rand = new SecureRandom();
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
-        this.in = new DataInputStream(socket.getInputStream());
-        this.out = new DataOutputStream(socket.getOutputStream());
+        ECPoint sharedPoint = kademlia.getSharedSecret(node);
+        byte[] myTempData = new byte[32];
+        rand.nextBytes(myTempData);
+        socket.getOutputStream().write(myTempData);
+        byte[] theirTempData = new byte[32];
+        new DataInputStream(socket.getInputStream()).readFully(theirTempData);
+        ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
+        DataOutputStream sin = new DataOutputStream(sharedIn);
+        ByteArrayOutputStream sharedOut = new ByteArrayOutputStream();
+        DataOutputStream sout = new DataOutputStream(sharedOut);
+        sharedPoint.write(sin);
+        sharedPoint.write(sout);
+        sout.write(theirTempData);
+        sout.write(myTempData);
+        sin.write(myTempData);
+        sin.write(theirTempData);
+        byte[] sharedIN = sharedIn.toByteArray();
+        byte[] sharedOUT = sharedOut.toByteArray();
+        System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
+        System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
+        System.out.println("LENGTH: " + sharedIN.length);
+        Cipher rc4Encrypt;
+        try {
+            rc4Encrypt = Cipher.getInstance("RC4");
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("lol");
+        }
+        SecretKeySpec rc4KeyEncrypt = new SecretKeySpec(sharedOUT, "RC4");
+        try {
+            rc4Encrypt.init(Cipher.ENCRYPT_MODE, rc4KeyEncrypt);
+        } catch (InvalidKeyException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("lol");
+        }
+        Cipher rc4Decrypt;
+        try {
+            rc4Decrypt = Cipher.getInstance("RC4");
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("lol");
+        }
+        SecretKeySpec rc4KeyDecrypt = new SecretKeySpec(sharedIN, "RC4");
+        try {
+            rc4Decrypt.init(Cipher.DECRYPT_MODE, rc4KeyDecrypt);
+        } catch (InvalidKeyException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("lol");
+        }
+        this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
+        this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
         this.pendingRequests = new HashMap<>();
         this.kademliaRef = kademlia;
     }

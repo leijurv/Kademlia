@@ -25,15 +25,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -68,6 +69,7 @@ public class Kademlia {
      * @throws org.apache.commons.cli.ParseException
      */
     public static void main(String[] args) throws IOException, ParseException {
+        System.out.println(System.getProperty("java.home"));
         Options options = new Options();
         options.addOption("v", "verbose", false, "enables verbose mode");
         options.addOption("p", "port", true, "sets port for communication with other nodes");
@@ -268,32 +270,34 @@ public class Kademlia {
     final SubscriptionManager subManager;
     final HashMap<Node, ClientSubscriber> clientSubManager;
     private volatile boolean shouldSave = true;
+    private final BigInteger myPrivateKey;
     public Kademlia(int port) throws IOException {
         this(port, whatIsMyIp());
     }
     public Kademlia(int port, String ip) throws IOException {
         this.port = port;
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
-        long nodeid;
         console.log("I am " + ip);
         this.buckets = new Bucket[64];
         if (getSaveFile().exists()) {
             console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
-                nodeid = in.readLong();
+                byte[] priv = new byte[33];
+                in.read(priv, 1, 32);
+                myPrivateKey = new BigInteger(priv);
                 for (int i = 0; i < 64; i++) {
                     buckets[i] = new Bucket(i, this, in);
                 }
                 settings = new Settings(in, this);
             }
         } else {
-            nodeid = Math.abs(new Random().nextLong());
+            myPrivateKey = new BigInteger(256, new SecureRandom());
             for (int i = 0; i < 64; i++) {
                 buckets[i] = new Bucket(i, this);
             }
             settings = new Settings(this);
         }
-        this.myself = new Node(nodeid, ip, port);
+        this.myself = new Node(ECPoint.base.multiply(myPrivateKey), ip, port);
         this.connections = new ArrayList<>();
         this.subManager = new SubscriptionManager(this);
         this.clientSubManager = new HashMap<>();
@@ -337,7 +341,7 @@ public class Kademlia {
     private void writeToSave() throws IOException {
         console.log("Kademlia is writing to save file");
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
-            out.writeLong(myself.nodeid);
+            out.write(ECPoint.toNormal(myPrivateKey.toByteArray()));
             for (int i = 0; i < 64; i++) {
                 buckets[i].write(out);
             }
@@ -597,6 +601,9 @@ public class Kademlia {
             console.log("couldn't find " + n + " in " + connections + ", so making new");
         }
         return establishConnection(n);
+    }
+    public ECPoint getSharedSecret(Node n) {
+        return n.publicKey.multiply(myPrivateKey);
     }
     public Connection handleSocket(Socket socket) throws IOException {
         myself.write(new DataOutputStream(socket.getOutputStream()));

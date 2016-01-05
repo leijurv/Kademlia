@@ -19,18 +19,21 @@ public class Node {
     public final String host;
     public final int port;
     public volatile long lastSuccessfulDataTransferDate = 0;
+    public final ECPoint publicKey;
     public Node(DataInputStream in) throws IOException {
-        this.nodeid = in.readLong();
+        this.publicKey = new ECPoint(in);
+        this.nodeid = publicKey.publicKeyHash();
         this.host = in.readUTF();//todo replace with some other way of representing hostname. maybe use inetaddress or something
         this.port = in.readInt();
     }
     public void write(DataOutputStream out) throws IOException {
-        out.writeLong(nodeid);
+        publicKey.write(out);
         out.writeUTF(host);
         out.writeInt(port);
     }
-    public Node(long nodeid, String host, int port) {
-        this.nodeid = nodeid;
+    public Node(ECPoint publicKey, String host, int port) {
+        this.publicKey = publicKey;
+        this.nodeid = publicKey.publicKeyHash();
         this.host = host;
         this.port = port;
     }
