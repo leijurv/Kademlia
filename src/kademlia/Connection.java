@@ -69,11 +69,9 @@ public class Connection {
         System.out.println("LENGTH: " + sharedIN.length);
         try {
             Cipher rc4Encrypt = Cipher.getInstance("RC4");
-            SecretKeySpec rc4KeyEncrypt = new SecretKeySpec(sharedOUT, "RC4");
-            rc4Encrypt.init(Cipher.ENCRYPT_MODE, rc4KeyEncrypt);
+            rc4Encrypt.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sharedOUT, "RC4"));
             Cipher rc4Decrypt = Cipher.getInstance("RC4");
-            SecretKeySpec rc4KeyDecrypt = new SecretKeySpec(sharedIN, "RC4");
-            rc4Decrypt.init(Cipher.DECRYPT_MODE, rc4KeyDecrypt);
+            rc4Decrypt.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sharedIN, "RC4"));
             this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
             this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
             this.pendingRequests = new HashMap<>();
