@@ -94,7 +94,9 @@ public class ConnectionGUITab extends Tab {
                     return;
                 }
                 try {
-                    kad.handleSocket(new Socket(hostnameTextField.getText(), Integer.parseInt(portTextField.getText())));
+                    Socket s = new Socket(hostnameTextField.getText(), Integer.parseInt(portTextField.getText()));
+                    s.getOutputStream().write((byte) 0);
+                    kad.handleSocket(s);
                 } catch (IOException ex) {
                     Alert alert = new Alert(Alert.AlertType.ERROR, ex.getLocalizedMessage());
                     alert.show();
