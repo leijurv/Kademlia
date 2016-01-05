@@ -141,9 +141,7 @@ public class Kademlia {
                                 host = "localhost";
                                 port = Integer.parseInt(command);
                             }
-                            Socket s = new Socket(host, port);
-                            s.getOutputStream().write(0);
-                            kad.handleSocket(s);
+                            kad.connectToHostAndPort(host, port);
                             break;
                         case "list":
                             console.log(kad.connections);
@@ -530,6 +528,11 @@ public class Kademlia {
     }
     private void runKademlia() throws IOException {
         createMainServer();
+    }
+    public void connectToHostAndPort(String host, int port) throws IOException {
+        Socket s = new Socket(host, port);
+        s.getOutputStream().write((byte) 0);
+        handleSocket(s);
     }
     private void createMainServer() throws IOException {
         ServerSocket server = new ServerSocket(port);

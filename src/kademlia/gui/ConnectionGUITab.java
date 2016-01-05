@@ -6,7 +6,6 @@
 package kademlia.gui;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -88,11 +87,8 @@ public class ConnectionGUITab extends Tab {
                 if (hostnameTextField.getText().length() == 0 || portTextField.getText().length() == 0) {
                     return;
                 }
-                Socket s;
                 try {
-                    s = new Socket(hostnameTextField.getText(), Integer.parseInt(portTextField.getText()));
-                    s.getOutputStream().write((byte) 0);
-                    kad.handleSocket(s);
+                    kad.connectToHostAndPort(hostnameTextField.getText(), Integer.parseInt(portTextField.getText()));
                 } catch (IOException ex) {
                     Logger.getLogger(ConnectionGUITab.class.getName()).log(Level.SEVERE, null, ex);
                     Alert alert = new Alert(Alert.AlertType.ERROR, ex.getLocalizedMessage());
