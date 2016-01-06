@@ -52,6 +52,17 @@ public class Connection {
             throw new IOException("no");
         }
     }
+    public static byte[] sha512hash(byte[] a, byte[] b) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            md.update(a);
+            md.update(b);
+            return md.digest();
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("no");
+        }
+    }
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;

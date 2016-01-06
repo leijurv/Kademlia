@@ -20,15 +20,19 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +48,11 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.DeflaterInputStream;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -60,6 +69,8 @@ public class Kademlia {
     public static final int k = 3;
     static public boolean verbose = false;
     static public boolean silent = false;
+    static public boolean useEncryption = false;
+    static public byte[] dataStorageKey = null;
     static public boolean noGUI = false;
     public volatile transient int progress = 0;
     public volatile transient int max = 0;
@@ -80,6 +91,7 @@ public class Kademlia {
         options.addOption("s", "silent", false, "enables silent mode");
         options.addOption("h", "help", false, "help");
         options.addOption("ip", "manual-wan-ip", true, "set the WAN IP manually when Kademlia can't determine it automatically");
+        options.addOption("k", "key", true, "key for stored data");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         if (cmd.hasOption("h")) {
@@ -93,6 +105,10 @@ public class Kademlia {
         }
         if (cmd.hasOption("s")) {
             silent = true;
+        }
+        if (cmd.hasOption("k")) {
+            dataStorageKey = Connection.sha512hash(cmd.getOptionValue("k").getBytes());
+            useEncryption = true;
         }
         int myPort = 7705;
         if (cmd.hasOption("p")) {
@@ -284,7 +300,7 @@ public class Kademlia {
         this.buckets = new Bucket[64];
         if (getSaveFile().exists()) {
             console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
-            try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
+            try (DataInputStream in = getInputStream(getSaveFile())) {
                 buckets[63] = new Bucket(63, this, in);
                 buckets[61] = new Bucket(61, this, in);
                 buckets[62] = new Bucket(62, this, in);
@@ -313,6 +329,45 @@ public class Kademlia {
         runKademlia();
         startSaveThread();
         startPingAllThread();
+    }
+    public final DataInputStream getInputStream(File f) throws IOException {
+        InputStream in = new BufferedInputStream(new FileInputStream(f));
+        int type = in.read();
+        if (type < 0) {
+            throw new EOFException("lol");
+        }
+        boolean isThisFileEncrypted = type != 0;
+        System.out.println("Reading " + f + " " + isThisFileEncrypted);
+        if (isThisFileEncrypted) {
+            if (!useEncryption) {
+                System.out.println("The file " + f + " is encrypted but you did not provide an encryption key");
+                System.exit(0);
+                throw new RuntimeException("haha");
+            }
+            try {
+                Cipher rc4 = Cipher.getInstance("RC4");
+                rc4.init(Cipher.DECRYPT_MODE, new SecretKeySpec(Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes()), "RC4"));
+                in = new CipherInputStream(in, rc4);
+            } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
+                Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return new DataInputStream(in);
+    }
+    public final DataOutputStream getOutputStream(File f) throws IOException {
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+        System.out.println("Writing " + f + " " + useEncryption);
+        out.write(useEncryption ? 1 : 0);
+        if (useEncryption) {
+            try {
+                Cipher rc4 = Cipher.getInstance("RC4");
+                rc4.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes()), "RC4"));
+                out = new CipherOutputStream(out, rc4);
+            } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
+                Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return new DataOutputStream(out);
     }
     private void startPingAllThread() {
         threadPool.execute(new Runnable() {
@@ -349,7 +404,7 @@ public class Kademlia {
         if (verbose) {
             console.log("Kademlia is writing to save file");
         }
-        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
+        try (DataOutputStream out = getOutputStream(getSaveFile())) {
             buckets[63].write(out);
             buckets[61].write(out);
             buckets[62].write(out);
@@ -379,9 +434,9 @@ public class Kademlia {
     }
     public void putfile(File file, String name) throws IOException, InterruptedException {
         console.log("Putting " + file + " under name " + name);
-        try (FileInputStream fileIn = new FileInputStream(file)) {
-            console.log("File is size " + fileIn.available());
-            InputStream in = new DeflaterInputStream(fileIn);
+        long length = file.length();
+        try (InputStream in = new DeflaterInputStream(new FileInputStream(file))) {
+            console.log("File is size " + length);
             int partSize = 524288;
             progress = 0;
             max = 1;

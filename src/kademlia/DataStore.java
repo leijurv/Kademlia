@@ -6,13 +6,9 @@
 package kademlia;
 
 import kademlia.lookup.Lookup;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -256,7 +252,7 @@ public class DataStore {
     }
     private void doSave() {
         synchronized (lock) {
-            try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
+            try (DataOutputStream out = kademliaRef.getOutputStream(getSaveFile())) {
                 Set<Long> keySet = storedData.keySet();
                 out.writeInt(keySet.size());
                 for (Long l : keySet) {
@@ -273,7 +269,7 @@ public class DataStore {
     }
     private void readFromSave() {
         synchronized (lock) {
-            try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
+            try (DataInputStream in = kademliaRef.getInputStream(getSaveFile())) {
                 int num = in.readInt();
                 StoredData[] data = new StoredData[num];
                 for (int i = 0; i < num; i++) {

@@ -12,8 +12,6 @@ import kademlia.gui.DataGUITab;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,7 +77,7 @@ public class StoredData {
             }
             File save = getFile();
             if (save.exists()) {
-                try (DataInputStream in = new DataInputStream(new FileInputStream(save))) {
+                try (DataInputStream in = dataStoreRef.kademliaRef.getInputStream(save)) {
                     byte[] temp = new byte[size];
                     in.readFully(temp);
                     long checksum = Lookup.unmaskedHash(temp);
@@ -130,7 +128,7 @@ public class StoredData {
     public void doSave() {
         synchronized (lock) {
             File save = getFile();
-            try (FileOutputStream out = new FileOutputStream(save)) {
+            try (DataOutputStream out = dataStoreRef.kademliaRef.getOutputStream(save)) {
                 out.write(data);
             } catch (IOException ex) {
                 Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
