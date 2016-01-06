@@ -56,10 +56,10 @@ public class Connection {
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
-        ECPoint sharedPoint = kademlia.getSharedSecret(node);
         byte[] myTempData = new byte[64];
         rand.nextBytes(myTempData);
         socket.getOutputStream().write(myTempData);
+        ECPoint sharedPoint = kademlia.getSharedSecret(node);
         byte[] theirTempData = new byte[64];
         new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
