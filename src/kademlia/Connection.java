@@ -55,11 +55,11 @@ public class Connection {
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
-        byte[] myTempData = new byte[6400];
+        byte[] myTempData = new byte[64];
         rand.nextBytes(myTempData);
         socket.getOutputStream().write(myTempData);
         ECPoint sharedPoint = kademlia.getSharedSecret(node);
-        byte[] theirTempData = new byte[6400];
+        byte[] theirTempData = new byte[64];
         new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
         DataOutputStream sin = new DataOutputStream(sharedIn);
@@ -71,8 +71,8 @@ public class Connection {
         sout.write(myTempData);
         sin.write(myTempData);
         sin.write(theirTempData);
-        byte[] sharedIN = sharedIn.toByteArray();
-        byte[] sharedOUT = sharedOut.toByteArray();
+        byte[] sharedIN = sha512hash(sharedIn.toByteArray());
+        byte[] sharedOUT = sha512hash(sharedOut.toByteArray());
         System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
         System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
         System.out.println("LENGTH: " + sharedIN.length);
