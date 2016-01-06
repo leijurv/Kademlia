@@ -619,7 +619,7 @@ public class Kademlia {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
         console.log(myself + " Received node data " + other + " from socket " + socket + " with expectation " + expected);
-        if (myself.equals(other)) {
+        if (myself.nodeid == other.nodeid || myself.sameHost(other)) {
             socket.close();//lol forgot this last time
             throw new IOException(new IllegalArgumentException("what the hell"));
         }
