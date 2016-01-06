@@ -22,6 +22,9 @@ public class Node {
     public final ECPoint publicKey;
     public Node(DataInputStream in) throws IOException {
         this.publicKey = new ECPoint(in);
+        if (!publicKey.verify()) {
+            throw new IOException("Invalid ECPoint");
+        }
         this.nodeid = publicKey.publicKeyHash();
         this.host = in.readUTF();//todo replace with some other way of representing hostname. maybe use inetaddress or something
         this.port = in.readInt();
