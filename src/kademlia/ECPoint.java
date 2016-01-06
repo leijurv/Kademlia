@@ -41,23 +41,22 @@ public class ECPoint {
                 throw new IllegalStateException("kush");
             }
             BigInteger xs = x.multiply(x);
-            s = xs.add(xs).add(xs).multiply(y.add(y).modPow(negativeOne, modulus)).mod(modulus);
+            s = xs.add(xs).add(xs).multiply(y.add(y).modInverse(modulus)).mod(modulus);
         } else {
-            s = y.subtract(q.y).add(modulus).multiply(x.subtract(q.x).modPow(negativeOne, modulus)).mod(modulus);
+            s = y.subtract(q.y).add(modulus).multiply(x.subtract(q.x).modInverse(modulus)).mod(modulus);
         }
         BigInteger xR = s.multiply(s).subtract(x).subtract(q.x).mod(modulus);
         BigInteger yR = modulus.subtract(y.add(s.multiply(xR.subtract(x))).mod(modulus));
         return new ECPoint(xR, yR);
     }
     public ECPoint multiply(BigInteger r) {
-        if (r.mod(two).equals(BigInteger.ZERO)) {
-            ECPoint d = add(this);
-            return d.multiply(r.divide(two));
+        if (r.getLowestSetBit() != 0) {
+            return add(this).multiply(r.shiftRight(1));
         }
         if (r.equals(BigInteger.ONE)) {
             return this;
         }
-        return add(multiply(r.subtract(BigInteger.ONE)));
+        return add(add(this).multiply(r.shiftRight(1)));
     }
     public boolean verify() {
         return verify(x, y);
