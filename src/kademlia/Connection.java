@@ -19,7 +19,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -133,6 +132,9 @@ public class Connection {
     public boolean sendRequest(Request r) {
         if (!isStillRunning) {
             r.onError(this);
+            synchronized (kademliaRef.connectionsLock) {
+                kademliaRef.connections.remove(this);//maybe our connection is still there?
+            }
             throw new IllegalStateException("ur high");
         }
         pendingRequests.put(r.requestID, r);
@@ -178,7 +180,9 @@ public class Connection {
     }
     public void close() {
         console.log(".close was called on " + this);
-        kademliaRef.connections.remove(this);//MUY MUY importante
+        synchronized (kademliaRef.connectionsLock) {
+            kademliaRef.connections.remove(this);//MUY MUY importante
+        }
         if (!isStillRunning) {
             console.log("im already closed, leave me alone " + this);
             return;
@@ -194,7 +198,7 @@ public class Connection {
             //because some of the requests contain references to lookup objects / storeddata objects
             Request r = pendingRequests.remove(requestid);//crucial to remove as we go through the list, instead of getting and clearing at the end
             if (r == null) {
-                throw new ConcurrentModificationException("god damn you");
+                continue;
             }
             r.onError(this);
         }

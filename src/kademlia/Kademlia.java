@@ -146,7 +146,9 @@ public class Kademlia {
                             kad.connectToHostAndPort(host, port);
                             break;
                         case "list":
-                            console.log(kad.connections);
+                            synchronized (kad.connectionsLock) {
+                                console.log(kad.connections);
+                            }
                             console.log("RAM: " + kad.storedData.bytesStoredInRAM());
                             console.log("Disk: " + kad.storedData.bytesStoredOnDisk());
                             console.log("Total: " + kad.storedData.bytesStoredInTotal());
@@ -264,6 +266,7 @@ public class Kademlia {
     public final Node myself;
     final Bucket[] buckets;
     public final ArrayList<Connection> connections;
+    public final Object connectionsLock = new Object();
     public final DataStore storedData;
     final String dataStorageDir;
     public final Settings settings;
@@ -585,12 +588,14 @@ public class Kademlia {
         return clientSubManager.get(n);
     }
     public Connection getConnectionToNode(Node n) {
-        for (Connection conn : connections) {
-            if (conn.node.nodeid == n.nodeid) {
-                return conn;
+        synchronized (connectionsLock) {
+            for (Connection conn : connections) {
+                if (conn.node.nodeid == n.nodeid) {
+                    return conn;
+                }
             }
+            return null;
         }
-        return null;
     }
     public Connection getOrCreateConnectionToNode(Node n) throws IOException {
         Connection already = getConnectionToNode(n);
@@ -598,7 +603,9 @@ public class Kademlia {
             return already;
         }
         if (Kademlia.verbose) {
-            console.log("couldn't find " + n + " in " + connections + ", so making new");
+            synchronized (connectionsLock) {
+                console.log("couldn't find " + n + " in " + connections + ", so making new");
+            }
         }
         return establishConnection(n);
     }
@@ -606,23 +613,41 @@ public class Kademlia {
         return n.publicKey.multiply(myPrivateKey);
     }
     public Connection handleSocket(Socket socket) throws IOException {
+        return handleSocket(socket, null);
+    }
+    public Connection handleSocket(Socket socket, Node expected) throws IOException {
         myself.write(new DataOutputStream(socket.getOutputStream()));
         Node other = new Node(new DataInputStream(socket.getInputStream()));
-        if (Kademlia.verbose) {
-            console.log(myself + " Received node data " + other + " from socket " + socket);
-        }
+        console.log(myself + " Received node data " + other + " from socket " + socket + " with expectation " + expected);
         if (myself.equals(other)) {
-            throw new IllegalStateException("what the hell");
+            socket.close();//lol forgot this last time
+            throw new IOException(new IllegalArgumentException("what the hell"));
         }
-        addOrUpdate(other);
-        Connection conn = new Connection(other, socket, this);
+        Connection conn;
+        try {
+            conn = new Connection(other, socket, this);
+        } catch (IllegalStateException x) {
+            socket.close();
+            throw new IOException(x);
+        }
+        addOrUpdate(other);//do this after establishing connection. the constructor for connection checks if they are telling the truth about their pubkey
+        //and we only want to add nodes that tell the truth
+        if (expected != null && (other.nodeid != expected.nodeid || !other.sameHost(expected))) {//todo think long and hard about what the behavior should be in this case
+            //we don't run heyThisNodeIsBeingAnnoying(other)
+            //because as far as we know, other hasn't done anything wrong.
+            heyThisNodeIsBeingAnnoying(expected);//however we now know our expected is wrong, so we want to remove that
+            conn.close();
+            throw new IllegalStateException("Tried to connect to " + expected + " and they said they were " + other);
+        }
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     conn.doListen();
                 } catch (IOException ex) {
-                    connections.remove(conn);
+                    synchronized (connectionsLock) {
+                        connections.remove(conn);
+                    }
                     conn.close();
                     Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
                     console.log("Error with connection " + conn + ", removing from list");
@@ -635,7 +660,9 @@ public class Kademlia {
         if (!noGUI) {
             ConnectionGUITab.addConnection();
         }
-        connections.add(conn);
+        synchronized (connectionsLock) {
+            connections.add(conn);
+        }
         return conn;
     }
     private Connection establishConnection(Node node) throws IOException {
@@ -648,20 +675,20 @@ public class Kademlia {
             }
             Socket s = new Socket(node.host, node.port);
             s.getOutputStream().write(0);//connection mode is normal
-            Connection conn = handleSocket(s);
-            if (conn.node.nodeid != node.nodeid || !conn.node.sameHost(node)) {//todo think long and hard about what the behavior should be in this case
-                s.close();//this will trigger an IOException to remove conn from the list
-                heyThisNodeIsBeingAnnoying(node);
-                heyThisNodeIsBeingAnnoying(conn.node);
-                throw new IllegalStateException("Tried to connect to " + node + " and they said they were " + conn.node);
-            }
+            Connection conn = handleSocket(s, node);
             return conn;
-        } catch (IOException | IllegalStateException e) {
+        } catch (IOException e) {
             console.log("Unable to establish connection to " + node);
             Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, e);
             //if error while establishing connection, node is probably down
             heyThisNodeIsBeingAnnoying(node);
             throw e;//still throw that exception. better than returning null and getting null pointer exceptions fo days
+        } catch (IllegalStateException e) {
+//the only thing that causes illegalstateexception is if they say they aren't what we expected
+            console.log("Unable to establish connection to " + node + " because they really are a different node");
+            Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, e);
+            //heythisnodeisbeingannoying was already called by handlesocket
+            throw new IOException(e);
         }
     }
     private static final List<String> blacklistIP = Arrays.asList(new String[]{"127.0.0.1", "127.0.1.1", "localhost"});

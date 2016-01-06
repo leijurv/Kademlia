@@ -66,7 +66,7 @@ public class Node {
             return false;
         }
         if (!sameHost(other)) {
-            throw new IllegalStateException(this + " and " + obj + " are being incorrectly compared as being the same");
+            throw new IllegalArgumentException(this + " and " + obj + " are being incorrectly compared as being the same");
         }
         return true;
     }
