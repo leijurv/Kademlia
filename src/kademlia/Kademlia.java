@@ -342,7 +342,9 @@ public class Kademlia {
         }.start();
     }
     private void writeToSave() throws IOException {
-        console.log("Kademlia is writing to save file");
+        if (verbose) {
+            console.log("Kademlia is writing to save file");
+        }
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
             out.write(ECPoint.toNormal(myPrivateKey.toByteArray()));
             for (int i = 0; i < 64; i++) {
