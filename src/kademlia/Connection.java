@@ -14,6 +14,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -43,6 +44,15 @@ public class Connection {
     private final Object outLock = new Object();
     private volatile boolean isStillRunning = true;
     private final SecureRandom rand = new SecureRandom();
+    public static byte[] sha512hash(byte[] x) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            return md.digest(x);
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IOException("no");
+        }
+    }
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
@@ -62,8 +72,8 @@ public class Connection {
         sout.write(myTempData);
         sin.write(myTempData);
         sin.write(theirTempData);
-        byte[] sharedIN = sharedIn.toByteArray();
-        byte[] sharedOUT = sharedOut.toByteArray();
+        byte[] sharedIN = sha512hash(sharedIn.toByteArray());
+        byte[] sharedOUT = sha512hash(sharedOut.toByteArray());
         System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
         System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
         System.out.println("LENGTH: " + sharedIN.length);
@@ -80,10 +90,18 @@ public class Connection {
         }
         this.pendingRequests = new HashMap<>();
         this.kademliaRef = kademlia;
-        long d = 45378534268293459L;
-        out.writeLong(d);
-        if (in.readLong() != d) {
-            throw new IOException("bad magic");
+        byte[] x = new byte[1024];
+        rand.nextBytes(x);
+        out.write(x);
+        byte[] theirs = new byte[1024];
+        in.readFully(theirs);
+        out.write(theirs);
+        byte[] mineAgain = new byte[1024];
+        in.readFully(mineAgain);
+        for (int i = 0; i < 1024; i++) {
+            if (mineAgain[i] != x[i]) {
+                throw new IOException("you failed");
+            }
         }
     }
     public void doListen() throws IOException {

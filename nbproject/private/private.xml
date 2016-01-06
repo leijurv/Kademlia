@@ -11,7 +11,6 @@
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/gui/KeyValueData.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/lookup/LookupTestStoredData.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/request/RequestFindNode.java</file>
-            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/LookupNormalGet.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/ClientSubscription.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/Connection.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/request/Request.java</file>
@@ -25,6 +24,7 @@
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/lookup/LookupFileAssemblyChunk.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/lookup/Lookup.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/lookup/LookupAssemblyMetadata.java</file>
+            <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/ECPoint.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/FileAssembly.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/request/RequestStore.java</file>
             <file>file:/Users/leijurv/Documents/Kademlia/src/kademlia/lookup/LookupPut.java</file>
