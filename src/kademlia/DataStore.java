@@ -120,25 +120,35 @@ public class DataStore {
                 try {
                     while (true) {
                         Thread.sleep(kademliaRef.settings.garbageCollectionIntervalSec * 1000);
-                        console.log("Clearing ram");
+                        if (Kademlia.verbose) {
+                            console.log("Clearing ram");
+                        }
                         synchronized (lock) {
                             ArrayList<StoredData> inRAM = storedData.keySet().stream().map(key -> storedData.get(key)).filter(x -> x.isInRAM()).collect(Collectors.toCollection(ArrayList::new));
                             long currentRAMSize = inRAM.stream().mapToLong(x -> x.size).sum();
                             inRAM.sort(Comparator.comparingLong(data -> data.lastRetreived));
-                            console.log("Size before: " + currentRAMSize);
+                            if (Kademlia.verbose) {
+                                console.log("Size before: " + currentRAMSize);
+                            }
                             while (currentRAMSize > kademliaRef.settings.maxRAMSizeBytes) {
                                 StoredData sd = inRAM.remove(0);
                                 synchronized (sd.lock) {
-                                    console.log("Removed " + sd.size + " bytes");
+                                    console.log("Removed " + sd.size + " bytes from ram. Current total size is " + currentRAMSize);
                                     sd.data = null;
                                     currentRAMSize -= sd.size;
                                 }
                             }
-                            console.log("Size after: " + currentRAMSize);
+                            if (Kademlia.verbose) {
+                                console.log("Size after: " + currentRAMSize);
+                            }
                         }
-                        console.log("Done clearing. Running gc...");
+                        if (Kademlia.verbose) {
+                            console.log("Done clearing. Running gc...");
+                        }
                         System.gc();
-                        console.log("Done running gc.");
+                        if (Kademlia.verbose) {
+                            console.log("Done running gc.");
+                        }
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(DataStore.class.getName()).log(Level.SEVERE, null, ex);
