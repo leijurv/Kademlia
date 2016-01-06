@@ -55,11 +55,11 @@ public class Connection {
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
-        byte[] myTempData = new byte[64];
+        byte[] myTempData = new byte[6400];
         rand.nextBytes(myTempData);
         socket.getOutputStream().write(myTempData);
         ECPoint sharedPoint = kademlia.getSharedSecret(node);
-        byte[] theirTempData = new byte[64];
+        byte[] theirTempData = new byte[6400];
         new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
         DataOutputStream sin = new DataOutputStream(sharedIn);
@@ -71,8 +71,8 @@ public class Connection {
         sout.write(myTempData);
         sin.write(myTempData);
         sin.write(theirTempData);
-        byte[] sharedIN = sha512hash(sharedIn.toByteArray());
-        byte[] sharedOUT = sha512hash(sharedOut.toByteArray());
+        byte[] sharedIN = sharedIn.toByteArray();
+        byte[] sharedOUT = sharedOut.toByteArray();
         System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
         System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
         System.out.println("LENGTH: " + sharedIN.length);
@@ -80,12 +80,15 @@ public class Connection {
             Cipher rc4Encrypt = Cipher.getInstance("RC4");
             rc4Encrypt.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sharedOUT, "RC4"));
             Cipher rc4Decrypt = Cipher.getInstance("RC4");
+            System.out.println(rc4Decrypt);
+            System.out.println(rc4Decrypt.getProvider());
+            System.out.println(rc4Decrypt.getProvider().getClass());
+            System.out.println(rc4Decrypt.getClass());
             rc4Decrypt.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sharedIN, "RC4"));
             this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
             this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException ex) {
-            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("haha");
+            throw new IOException(ex);
         }
         this.pendingRequests = new HashMap<>();
         this.kademliaRef = kademlia;
@@ -166,9 +169,9 @@ public class Connection {
             });
             return true;
         } catch (Exception ex) {//yes, catch ALL exceptions. no matter what the exception is, we need this catch to run.
+            pendingRequests.remove(r.requestID);
             Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
             console.log("Exception while sending request " + r);
-            pendingRequests.remove(r.requestID);
             r.onError(this);
             //technically I'm pretty sure that an IOException here means that the entire connection is closed...
             //TODO
