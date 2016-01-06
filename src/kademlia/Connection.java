@@ -57,10 +57,10 @@ public class Connection {
         this.node = node;
         this.socket = socket;
         ECPoint sharedPoint = kademlia.getSharedSecret(node);
-        byte[] myTempData = new byte[32];
+        byte[] myTempData = new byte[64];
         rand.nextBytes(myTempData);
         socket.getOutputStream().write(myTempData);
-        byte[] theirTempData = new byte[32];
+        byte[] theirTempData = new byte[64];
         new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
         DataOutputStream sin = new DataOutputStream(sharedIn);
