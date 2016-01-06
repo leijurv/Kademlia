@@ -285,13 +285,17 @@ public class Kademlia {
         if (getSaveFile().exists()) {
             console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(getSaveFile())))) {
+                buckets[63] = new Bucket(63, this, in);
+                buckets[61] = new Bucket(61, this, in);
+                buckets[62] = new Bucket(62, this, in);
                 byte[] priv = new byte[33];
-                in.read(priv, 1, 32);
+                in.readFully(priv, 1, 32);
                 myPrivateKey = new BigInteger(priv);
-                for (int i = 0; i < 64; i++) {
+                for (int i = 0; i < 61; i++) {
                     buckets[i] = new Bucket(i, this, in);
                 }
                 settings = new Settings(in, this);
+                console.log("finished reading");
             }
         } else {
             myPrivateKey = new BigInteger(256, new SecureRandom());
@@ -346,8 +350,11 @@ public class Kademlia {
             console.log("Kademlia is writing to save file");
         }
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getSaveFile())))) {
+            buckets[63].write(out);
+            buckets[61].write(out);
+            buckets[62].write(out);
             out.write(ECPoint.toNormal(myPrivateKey.toByteArray()));
-            for (int i = 0; i < 64; i++) {
+            for (int i = 0; i < 61; i++) {
                 buckets[i].write(out);
             }
             settings.write(out);
