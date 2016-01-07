@@ -337,7 +337,9 @@ public class Kademlia {
             throw new EOFException("lol");
         }
         boolean isThisFileEncrypted = type != 0;
-        System.out.println("Reading " + f + " " + isThisFileEncrypted);
+        if (verbose) {
+            System.out.println("Reading " + f + " " + isThisFileEncrypted);
+        }
         if (isThisFileEncrypted) {
             if (!useEncryption) {
                 System.out.println("The file " + f + " is encrypted but you did not provide an encryption key");
@@ -346,7 +348,11 @@ public class Kademlia {
             }
             try {
                 Cipher rc4 = Cipher.getInstance("RC4");
-                rc4.init(Cipher.DECRYPT_MODE, new SecretKeySpec(Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes()), "RC4"));
+                byte[] key = Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes());
+                if (verbose) {
+                    console.log("Key: " + Arrays.hashCode(key));
+                }
+                rc4.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "RC4"));
                 in = new CipherInputStream(in, rc4);
             } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
                 Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
@@ -356,12 +362,18 @@ public class Kademlia {
     }
     public final DataOutputStream getOutputStream(File f) throws IOException {
         OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
-        System.out.println("Writing " + f + " " + useEncryption);
+        if (verbose) {
+            System.out.println("Writing " + f + " " + useEncryption);
+        }
         out.write(useEncryption ? 1 : 0);
         if (useEncryption) {
             try {
                 Cipher rc4 = Cipher.getInstance("RC4");
-                rc4.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes()), "RC4"));
+                byte[] key = Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes());
+                if (verbose) {
+                    console.log("Key: " + Arrays.hashCode(key));
+                }
+                rc4.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "RC4"));
                 out = new CipherOutputStream(out, rc4);
             } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
                 Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
