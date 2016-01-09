@@ -52,17 +52,6 @@ public class Connection {
             throw new IOException("no");
         }
     }
-    public static byte[] sha512hash(byte[] a, byte[] b) throws IOException {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-512");
-            md.update(a);
-            md.update(b);
-            return md.digest();
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-            throw new IOException("no");
-        }
-    }
     public Connection(Node node, Socket socket, Kademlia kademlia) throws IOException {
         this.node = node;
         this.socket = socket;
@@ -70,31 +59,32 @@ public class Connection {
         rand.nextBytes(myTempData);
         socket.getOutputStream().write(myTempData);
         ECPoint sharedPoint = kademlia.getSharedSecret(node);
-        byte[] theirTempData = new byte[64];
-        new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         ByteArrayOutputStream sharedIn = new ByteArrayOutputStream();
         DataOutputStream sin = new DataOutputStream(sharedIn);
         ByteArrayOutputStream sharedOut = new ByteArrayOutputStream();
         DataOutputStream sout = new DataOutputStream(sharedOut);
         sharedPoint.write(sin);
         sharedPoint.write(sout);
+        sin.write(myTempData);
+        byte[] theirTempData = new byte[64];
+        new DataInputStream(socket.getInputStream()).readFully(theirTempData);
         sout.write(theirTempData);
         sout.write(myTempData);
-        sin.write(myTempData);
         sin.write(theirTempData);
         byte[] sharedIN = sha512hash(sharedIn.toByteArray());
         byte[] sharedOUT = sha512hash(sharedOut.toByteArray());
         System.out.println("Shared secret IN: " + Arrays.hashCode(sharedIN));
         System.out.println("Shared secret OUT: " + Arrays.hashCode(sharedOUT));
-        System.out.println("LENGTH: " + sharedIN.length);
         try {
             Cipher rc4Encrypt = Cipher.getInstance("RC4");
             rc4Encrypt.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(sharedOUT, "RC4"));
             Cipher rc4Decrypt = Cipher.getInstance("RC4");
-            System.out.println(rc4Decrypt);
-            System.out.println(rc4Decrypt.getProvider());
-            System.out.println(rc4Decrypt.getProvider().getClass());
-            System.out.println(rc4Decrypt.getClass());
+            if (Kademlia.verbose) {
+                System.out.println(rc4Decrypt);
+                System.out.println(rc4Decrypt.getProvider());
+                System.out.println(rc4Decrypt.getProvider().getClass());
+                System.out.println(rc4Decrypt.getClass());
+            }
             rc4Decrypt.init(Cipher.DECRYPT_MODE, new SecretKeySpec(sharedIN, "RC4"));
             this.in = new DataInputStream(new CipherInputStream(socket.getInputStream(), rc4Decrypt));
             this.out = new DataOutputStream(new CipherOutputStream(socket.getOutputStream(), rc4Encrypt));
@@ -103,16 +93,17 @@ public class Connection {
         }
         this.pendingRequests = new HashMap<>();
         this.kademliaRef = kademlia;
-        byte[] x = new byte[1024];
-        rand.nextBytes(x);
-        out.write(x);
+        byte[] mine = new byte[1024];
+        rand.nextBytes(mine);
+        out.write(mine);
+        byte[] mineHashedActual = sha512hash(mine);
         byte[] theirs = new byte[1024];
         in.readFully(theirs);
-        out.write(theirs);
-        byte[] mineAgain = new byte[1024];
-        in.readFully(mineAgain);
-        for (int i = 0; i < 1024; i++) {
-            if (mineAgain[i] != x[i]) {
+        out.write(sha512hash(theirs));
+        byte[] mineAgainHashed = new byte[64];
+        in.readFully(mineAgainHashed);
+        for (int i = 0; i < 64; i++) {
+            if (mineAgainHashed[i] != mineHashedActual[i]) {
                 throw new IOException("you failed");
             }
         }

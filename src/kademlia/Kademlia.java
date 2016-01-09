@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -290,6 +291,7 @@ public class Kademlia {
     final HashMap<Node, ClientSubscriber> clientSubManager;
     private volatile boolean shouldSave = true;
     private final BigInteger myPrivateKey;
+    private final SecureRandom random;
     public Kademlia(int port) throws IOException {
         this(port, whatIsMyIp());
     }
@@ -298,6 +300,7 @@ public class Kademlia {
         dataStorageDir = System.getProperty("user.home") + "/.kademlia/port" + port + "/";
         console.log("I am " + ip);
         this.buckets = new Bucket[64];
+        this.random = new SecureRandom();
         if (getSaveFile().exists()) {
             console.log("Kademlia is reading from save " + getSaveFile().getCanonicalPath());
             try (DataInputStream in = getInputStream(getSaveFile())) {
@@ -314,7 +317,7 @@ public class Kademlia {
                 console.log("finished reading");
             }
         } else {
-            myPrivateKey = new BigInteger(256, new SecureRandom());
+            myPrivateKey = new BigInteger(256, random);
             for (int i = 0; i < 64; i++) {
                 buckets[i] = new Bucket(i, this);
             }
@@ -331,8 +334,8 @@ public class Kademlia {
         startPingAllThread();
     }
     public final DataInputStream getInputStream(File f) throws IOException {
-        InputStream in = new BufferedInputStream(new FileInputStream(f));
-        int type = in.read();
+        InputStream rawFileIn = new BufferedInputStream(new FileInputStream(f), 4096);
+        int type = rawFileIn.read();
         if (type < 0) {
             throw new EOFException("lol");
         }
@@ -346,40 +349,70 @@ public class Kademlia {
                 System.exit(0);
                 throw new RuntimeException("haha");
             }
+            byte[] tempData = new byte[128];
+            new DataInputStream(rawFileIn).readFully(tempData);
             try {
                 Cipher rc4 = Cipher.getInstance("RC4");
-                byte[] key = Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes());
+                MessageDigest md = MessageDigest.getInstance("SHA-512");
+                md.update(dataStorageKey);
+                md.update(f.getCanonicalPath().getBytes());
+                md.update(tempData);
+                byte[] key = md.digest();
                 if (verbose) {
                     console.log("Key: " + Arrays.hashCode(key));
                 }
                 rc4.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "RC4"));
-                in = new CipherInputStream(in, rc4);
+                DataInputStream dataIn = new DataInputStream(new CipherInputStream(rawFileIn, rc4));
+                dataIn.readFully(new byte[512]);
+                int moreRandom = dataIn.readInt();
+                dataIn.readFully(new byte[moreRandom]);
+                return dataIn;
             } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
                 Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+                throw new IOException(ex);
             }
+        } else {
+            return new DataInputStream(rawFileIn);
         }
-        return new DataInputStream(in);
     }
     public final DataOutputStream getOutputStream(File f) throws IOException {
-        OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+        OutputStream rawFileOut = new BufferedOutputStream(new FileOutputStream(f), 4096);
         if (verbose) {
             System.out.println("Writing " + f + " " + useEncryption);
         }
-        out.write(useEncryption ? 1 : 0);
+        rawFileOut.write(useEncryption ? 1 : 0);
         if (useEncryption) {
+            byte[] tempData = new byte[128];
+            random.nextBytes(tempData);
+            rawFileOut.write(tempData);
             try {
                 Cipher rc4 = Cipher.getInstance("RC4");
-                byte[] key = Connection.sha512hash(dataStorageKey, f.getCanonicalPath().getBytes());
+                MessageDigest md = MessageDigest.getInstance("SHA-512");
+                md.update(dataStorageKey);
+                md.update(f.getCanonicalPath().getBytes());
+                md.update(tempData);
+                byte[] key = md.digest();
                 if (verbose) {
                     console.log("Key: " + Arrays.hashCode(key));
                 }
                 rc4.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "RC4"));
-                out = new CipherOutputStream(out, rc4);
+                DataOutputStream dataOut = new DataOutputStream(new CipherOutputStream(rawFileOut, rc4));
+                byte[] randomOut = new byte[512];
+                random.nextBytes(randomOut);
+                dataOut.write(randomOut);
+                int moreRandom = random.nextInt(1024);
+                byte[] moreRandomOut = new byte[moreRandom];
+                random.nextBytes(moreRandomOut);
+                dataOut.writeInt(moreRandom);
+                dataOut.write(moreRandomOut);
+                return dataOut;
             } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException ex) {
                 Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+                throw new IOException(ex);
             }
+        } else {
+            return new DataOutputStream(rawFileOut);
         }
-        return new DataOutputStream(out);
     }
     private void startPingAllThread() {
         threadPool.execute(new Runnable() {
