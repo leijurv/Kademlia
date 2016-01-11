@@ -66,7 +66,7 @@ public class Bucket {
             nodes.put(id, node);
             return true;
         } else {
-            if (nodes.keySet().size() <= Kademlia.k) {
+            if (nodes.keySet().size() < Kademlia.k) {
                 nodes.put(id, node);
                 return true;
             }
@@ -126,8 +126,9 @@ public class Bucket {
         nodes.remove(n.nodeid);
         if (nodes.keySet().size() < Kademlia.k && !replacementCache.isEmpty()) {
             replacementCache.sort(Comparator.comparingLong(node -> node.lastSuccessfulDataTransferDate));
-            Node toAdd = replacementCache.get(replacementCache.size() - 1);
+            Node toAdd = replacementCache.remove(replacementCache.size() - 1);
             addOrUpdate(toAdd);
+            pingThatNode(toAdd.nodeid);
         }
     }
 }
