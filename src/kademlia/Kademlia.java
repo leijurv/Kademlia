@@ -54,6 +54,7 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
+import kademlia.lookup.LookupBootstrap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -574,6 +575,13 @@ public class Kademlia {
         }
         throw new IllegalStateException("Literally no possible way this could happen. Cosmic rays man. Apparently the long " + distance + " isn't less than or equal to Long.MAX_VALUE");
     }
+    public int numNodesInBuckets() {
+        int num = 0;
+        for (int i = 0; i < 64; i++) {
+            num += buckets[i].nodes.size();
+        }
+        return num;
+    }
     public void addOrUpdate(Node node) {
         if (node.equals(myself)) {
             if (Kademlia.verbose) {
@@ -739,6 +747,7 @@ public class Kademlia {
             socket.close();
             throw new IOException(x);
         }
+        boolean shouldEventuallyBootstrap = numNodesInBuckets() == 0;
         addOrUpdate(other);//do this after establishing connection. the constructor for connection checks if they are telling the truth about their pubkey
         //and we only want to add nodes that tell the truth
         if (expected != null && (other.nodeid != expected.nodeid || !other.sameHost(expected))) {//todo think long and hard about what the behavior should be in this case
@@ -747,6 +756,21 @@ public class Kademlia {
             heyThisNodeIsBeingAnnoying(expected);//however we now know our expected is wrong, so we want to remove that
             conn.close();
             throw new IllegalStateException("Tried to connect to " + expected + " and they said they were " + other);
+        }
+        if (shouldEventuallyBootstrap) {
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        console.log("bootstrapping in a second");
+                        Thread.sleep(1000);
+                        console.log("bootstrapping");
+                        new LookupBootstrap(Kademlia.this).execute();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Kademlia.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            });
         }
         threadPool.execute(new Runnable() {
             @Override

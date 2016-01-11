@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import kademlia.Kademlia;
 import kademlia.Node;
+import kademlia.console;
 
 /**
  *
@@ -23,6 +24,7 @@ public class LookupBootstrap extends Lookup {
     protected void onNodeLookupCompleted0() {
         for (Node node : closest) {
             if (node.nodeid != kademliaRef.myself.nodeid) {
+                console.log("bootstrapping to " + node);
                 try {
                     kademliaRef.getOrCreateConnectionToNode(node);
                 } catch (IOException ex) {
