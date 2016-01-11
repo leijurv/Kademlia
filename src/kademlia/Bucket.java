@@ -10,7 +10,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,14 +22,12 @@ import java.util.logging.Logger;
  */
 public class Bucket {
     private final int distance;
-    final ArrayList<Long> nodeids;
     final HashMap<Long, Node> nodes;
     private final ArrayList<Node> replacementCache;
     private final Kademlia kademliaRef;
     public Bucket(int distance, Kademlia kademliaRef) {
         this.distance = distance;
         this.nodes = new HashMap<>();
-        this.nodeids = new ArrayList<>();
         this.replacementCache = new ArrayList<>();
         this.kademliaRef = kademliaRef;
     }
@@ -35,41 +35,45 @@ public class Bucket {
         int numNodes = in.readInt();
         this.distance = distance;
         this.nodes = new HashMap<>();
-        this.nodeids = new ArrayList<>(numNodes);
         this.replacementCache = new ArrayList<>();
         this.kademliaRef = kademliaRef;
         for (int i = 0; i < numNodes; i++) {
             Node node = new Node(in);
-            nodeids.add(node.nodeid);
+            node.hostPortVerified = in.readBoolean();
             nodes.put(node.nodeid, node);
         }
     }
     public void write(DataOutputStream out) throws IOException {
-        out.writeInt(nodeids.size());
-        for (long nodeid : nodeids) {
+        Set<Long> keySet = nodes.keySet();
+        out.writeInt(keySet.size());
+        for (long nodeid : keySet) {
             Node node = nodes.get(nodeid);
             node.write(out);
+            out.writeBoolean(node.hostPortVerified);
         }
     }
     public boolean addOrUpdate(Node node) {
         long id = node.nodeid;
-        if (nodeids.contains(id)) {
+        if (nodes.containsKey(id)) {
             Node previous = nodes.get(id);
-            if (!previous.sameHost(node)) {
-                console.log("(diff host) Replacing " + nodes.get(id) + " with " + node);
+            if (previous.sameHost(node)) {
+                return false;
             }
+            if (previous.hostPortVerified) {
+                throw new IllegalStateException("Trying to replace verified node " + previous + " with new node " + node);
+            }
+            console.log("(diff host) Replacing " + nodes.get(id) + " with " + node);
             nodes.put(id, node);
-            return !previous.sameHost(node);
+            return true;
         } else {
-            if (nodeids.size() <= Kademlia.k) {
-                nodeids.add(id);
+            if (nodes.keySet().size() <= Kademlia.k) {
                 nodes.put(id, node);
                 return true;
             }
-            long now = System.currentTimeMillis();
-            nodeids.sort((Long o1, Long o2) -> new Long(nodes.get(o1).lastSuccessfulDataTransferDate).compareTo(nodes.get(o2).lastSuccessfulDataTransferDate));
-            for (long nodeid : nodeids) {
-                if (Kademlia.verbose) {
+            ArrayList<Long> nodeids = new ArrayList<>(nodes.keySet());
+            nodeids.sort(Comparator.comparingLong(nodeid -> nodes.get(nodeid).lastSuccessfulDataTransferDate));
+            if (Kademlia.verbose) {
+                for (long nodeid : nodeids) {
                     console.log("Node id: " + nodeid + ", nodedata: " + nodes.get(nodeid) + ", lastsuc: " + nodes.get(nodeid).lastSuccessfulDataTransferDate);
                 }
             }
@@ -80,14 +84,9 @@ public class Bucket {
         }
     }
     public void pingAll() {
-        Kademlia.threadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (long nodeid : nodeids) {
-                    pingThatNode(nodeid);
-                }
-            }
-        });
+        for (long nodeid : nodes.keySet()) {
+            pingThatNode(nodeid);
+        }
     }
     public void pingThatNode(long toRemove) {
         Node n = nodes.get(toRemove);
@@ -101,7 +100,7 @@ public class Bucket {
                     RequestPing rp = new RequestPing();
                     Connection conn = kademliaRef.getOrCreateConnectionToNode(n);
                     conn.sendRequest(rp);
-                    Thread.sleep(1000);
+                    Thread.sleep(kademliaRef.settings.pingTimeoutSec * 1000);
                     if (conn.isStillRunning() && !conn.isRequestStillPending(rp)) {
                         return;
                     }
@@ -118,20 +117,17 @@ public class Bucket {
         return "BUCKET" + distance;
     }
     public void removeNode(Node n) {
-        if (!nodeids.contains(n.nodeid)) {
+        if (!nodes.containsKey(n.nodeid)) {
             throw new IllegalArgumentException("I DIDNT EVEN HAVE YOU TO BEGIN WITH");
         }
         if (Kademlia.verbose) {
             console.log("Doing remove for " + n);
         }
-        nodeids.remove(n.nodeid);
         nodes.remove(n.nodeid);
-        if (nodeids.size() < Kademlia.k && !replacementCache.isEmpty()) {
-            replacementCache.sort((Node o1, Node o2) -> new Long(o1.lastSuccessfulDataTransferDate).compareTo(o2.lastSuccessfulDataTransferDate));
+        if (nodes.keySet().size() < Kademlia.k && !replacementCache.isEmpty()) {
+            replacementCache.sort(Comparator.comparingLong(node -> node.lastSuccessfulDataTransferDate));
             Node toAdd = replacementCache.get(replacementCache.size() - 1);
-            nodeids.add(toAdd.nodeid);
-            nodes.put(toAdd.nodeid, toAdd);
-            pingThatNode(toAdd.nodeid);
+            addOrUpdate(toAdd);
         }
     }
 }

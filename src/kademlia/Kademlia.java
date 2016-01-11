@@ -604,7 +604,7 @@ public class Kademlia {
          closest.add(bucket.nodes.get(nodeid));
          }
          }*/
-        ArrayList<Node> closest = Stream.of(buckets).flatMap(bucket -> bucket.nodeids.stream().map(nodeid -> bucket.nodes.get(nodeid))).collect(Collectors.toCollection(ArrayList::new));
+        ArrayList<Node> closest = Stream.of(buckets).flatMap(bucket -> bucket.nodes.keySet().stream().map(nodeid -> bucket.nodes.get(nodeid))).collect(Collectors.toCollection(ArrayList::new));
         closest.sort(Node.createDistanceComparator(search));
         if (closest.size() > num) {
             return new ArrayList<>(closest.subList(0, num));
@@ -617,7 +617,7 @@ public class Kademlia {
         long currWorst = 0;
         int nf = 0;
         for (Bucket bucket : buckets) {
-            for (long nodeid : bucket.nodeids) {
+            for (long nodeid : bucket.nodes.keySet()) {
                 if (nf < num) {
                     closest.add(bucket.nodes.get(nodeid));
                     nf++;

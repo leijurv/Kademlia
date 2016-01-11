@@ -107,6 +107,13 @@ public class Connection {
                 throw new IOException("you failed");
             }
         }
+        if (connectionEstablishedByMe()) {
+            node.hostPortVerified = true;
+        }
+        node.lastSuccessfulDataTransferDate = System.currentTimeMillis();
+    }
+    public final boolean connectionEstablishedByMe() {
+        return socket.getLocalPort() == kademliaRef.myself.port;
     }
     public void doListen() throws IOException {
         Kademlia.threadPool.execute(new Runnable() {
@@ -150,7 +157,9 @@ public class Connection {
             synchronized (outLock) {
                 out.write(toWrite);
             }
-            r.sendDate = System.currentTimeMillis();
+            long time = System.currentTimeMillis();
+            r.sendDate = time;
+            node.lastSuccessfulDataTransferDate = time;
             if (Kademlia.verbose) {
                 console.log(kademliaRef.myself + " Sent request " + r + " to " + node);
             }
@@ -213,6 +222,7 @@ public class Connection {
     }
     private void readMessage() throws IOException {
         boolean isResp = in.readBoolean();
+        node.lastSuccessfulDataTransferDate = System.currentTimeMillis();
         if (isResp) {
             long requestID = in.readLong();
             Request r = pendingRequests.remove(requestID);
@@ -239,6 +249,7 @@ public class Connection {
                         synchronized (outLock) {
                             out.write(toSend);
                         }
+                        node.lastSuccessfulDataTransferDate = System.currentTimeMillis();
                         if (Kademlia.verbose) {
                             console.log(kademliaRef.myself + " Sent response to " + request);
                         }

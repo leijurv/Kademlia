@@ -33,19 +33,26 @@ public class LookupPut extends Lookup {
         this.contentsToPut = contents;
         this.lastMod = lastModified;
     }
+    private void putLocally() {
+        byte[] temp;
+        if (contOffset == 0 && contLen == contentsToPut.length) {
+            temp = contentsToPut;
+        } else {
+            temp = new byte[contLen];
+            System.arraycopy(contentsToPut, contOffset, temp, 0, contLen);
+        }
+        kademliaRef.storedData.put(key, temp, lastMod);
+        console.log("done, stored locally");
+    }
     @Override
     protected void onNodeLookupCompleted0() {
+        if (closest.isEmpty()) {
+            putLocally();
+            return;
+        }
         for (Node storageNode : closest) {
             if (kademliaRef.myself.equals(storageNode)) {
-                byte[] temp;
-                if (contOffset == 0 && contLen == contentsToPut.length) {
-                    temp = contentsToPut;
-                } else {
-                    temp = new byte[contLen];
-                    System.arraycopy(contentsToPut, contOffset, temp, 0, contLen);
-                }
-                kademliaRef.storedData.put(key, temp, lastMod);
-                console.log("done, stored locally");
+                putLocally();
             } else {
                 try {
                     kademliaRef.getOrCreateConnectionToNode(storageNode).sendRequest(new RequestStore(key, contentsToPut, lastMod, contOffset, contLen));

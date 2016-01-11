@@ -30,7 +30,6 @@ public class RequestPing extends Request {
     }
     @Override
     public void onResponse(DataInputStream in, Connection conn) throws IOException {
-        conn.node.lastSuccessfulDataTransferDate = System.currentTimeMillis();
     }
     @Override
     public void onError0(Connection conn) {

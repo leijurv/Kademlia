@@ -18,6 +18,7 @@ public class Node {
     public final long nodeid;
     public final String host;
     public final int port;
+    public volatile boolean hostPortVerified = false;
     public volatile long lastSuccessfulDataTransferDate = 0;
     public final ECPoint publicKey;
     public Node(DataInputStream in) throws IOException {
