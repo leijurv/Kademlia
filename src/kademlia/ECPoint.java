@@ -92,6 +92,7 @@ public class ECPoint {
             write(o);
         } catch (IOException ex) {
             Logger.getLogger(ECPoint.class.getName()).log(Level.SEVERE, null, ex);
+            throw new IllegalStateException(ex);
         }
         return Lookup.unmaskedHash(o.toByteArray());
     }
