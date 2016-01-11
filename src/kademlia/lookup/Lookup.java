@@ -33,7 +33,6 @@ public abstract class Lookup {
     protected ArrayList<Node> closest;
     private final ArrayList<Node> alreadyAsked = new ArrayList<>();
     protected final boolean isKeyLookup;
-    protected Node finalResult;
     private volatile boolean isClosestNormalized = false;
     private final Object lock = new Object();
     private volatile boolean hasDoneStore = false;
@@ -83,14 +82,7 @@ public abstract class Lookup {
         return null;
     }
     public boolean isLookupFinished() {
-        if (hasDoneStore) {
-            return true;
-        }
-        if (isKeyLookup) {
-            return value != null;
-        } else {
-            return finalResult != null;
-        }
+        return hasDoneStore || (isKeyLookup && value != null);
     }
     public void execute() {
         for (int i = 0; i < concurrencyLevel; i++) {
@@ -223,13 +215,6 @@ public abstract class Lookup {
                             worstDistance = distance;
                         }
                     }
-                }
-            }
-            for (Node closest1 : closest) {
-                if (closest1.nodeid == key) {
-                    finalResult = closest1;
-                    onCompletion();
-                    return;
                 }
             }
         }

@@ -30,6 +30,6 @@ public class LookupNormalGet extends Lookup {
         if (!Kademlia.noGUI) {
             DataGUITab.incomingKeyValueData(key, value);
         }
-        console.log((isKeyLookup ? new String(value) : finalResult));
+        console.log(new String(value));
     }
 }
