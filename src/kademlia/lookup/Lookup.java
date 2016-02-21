@@ -210,6 +210,7 @@ public abstract class Lookup {
                     }
                     if (betterDist || addAnyway) {
                         closest.add(newNode);
+                        isClosestNormalized = false;
                         didDiscoverNewNode = true;
                         if (!betterDist) {
                             worstDistance = distance;
